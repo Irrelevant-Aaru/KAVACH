@@ -21,6 +21,7 @@ import {
   Stethoscope,
   Target,
   TimerReset,
+  UserCheck,
   UserRound,
   Users,
   X,
@@ -260,20 +261,45 @@ const missionSkeletons: Record<string, { label: string; code: string; roles: str
 function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => void; dispatched: string[] }) {
   const [formationKey, setFormationKey] = useState('AREA PATROL // AP-01')
   const [overrides, setOverrides] = useState<Record<number, string>>({})
-  const [activeSwapSlot, setActiveSwapSlot] = useState<number | null>(null)
+  const [swappingSlot, setSwappingSlot] = useState<{ slotIndex: number; role: string } | null>(null)
   const [customSlots, setCustomSlots] = useState<string[]>(['Rifleman', 'Rifleman', 'Rifleman', 'Rifleman'])
 
-  const sorted = useMemo(() => [...tableA].sort((a, b) => b.ors - a.ors), [])
   const skeleton = missionSkeletons[formationKey] ?? missionSkeletons['AREA PATROL // AP-01']
 
   const handleFormationChange = (key: string) => {
     setFormationKey(key)
     setOverrides({})
-    setActiveSwapSlot(null)
+    setSwappingSlot(null)
   }
 
   const rolesToFill = formationKey === 'CUSTOM // FREE HAND' ? customSlots : skeleton.roles
 
+  // Dynamic sorting for Left Table A based on active Swap Mode
+  const sortedTableA = useMemo(() => {
+    const baseList = [...tableA]
+    if (!swappingSlot) {
+      return baseList.sort((a, b) => b.ors - a.ors)
+    }
+
+    const targetRole = swappingSlot.role
+
+    return baseList.sort((a, b) => {
+      // Available soldiers first
+      if (a.status === 'Available' && b.status !== 'Available') return -1
+      if (a.status !== 'Available' && b.status === 'Available') return 1
+
+      // Matching target badge first
+      const aHasRole = a.badges.includes(targetRole)
+      const bHasRole = b.badges.includes(targetRole)
+      if (aHasRole && !bHasRole) return -1
+      if (!aHasRole && bHasRole) return 1
+
+      // Sorted by Readiness / ORS descending
+      return b.ors - a.ors
+    })
+  }, [swappingSlot])
+
+  // Squad assignments calculation
   const squadAssignments = useMemo(() => {
     const picked: { slotIndex: number; soldierId: string; role: string }[] = []
 
@@ -283,7 +309,7 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
         return
       }
 
-      const available = sorted.filter(s => s.status === 'Available' && !picked.some(p => p.soldierId === s.id))
+      const available = sortedTableA.filter(s => s.status === 'Available' && !picked.some(p => p.soldierId === s.id))
       const match = available.find(s => s.badges.includes(roleNeeded)) ?? available.find(s => s.badges.includes('Rifleman')) ?? available[0]
 
       if (match) {
@@ -292,16 +318,25 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
     })
 
     return picked
-  }, [rolesToFill, overrides, sorted])
+  }, [rolesToFill, overrides, sortedTableA])
 
   const selectedIds = squadAssignments.map(a => a.soldierId)
 
-  const handleSwap = (slotIndex: number, newSoldierId: string) => {
-    setOverrides(prev => ({ ...prev, [slotIndex]: newSoldierId }))
-    setActiveSwapSlot(null)
+  const handleSelectReplacement = (soldierId: string) => {
+    if (!swappingSlot) return
+    setOverrides(prev => ({ ...prev, [swappingSlot.slotIndex]: soldierId }))
+    setSwappingSlot(null)
   }
 
-  const addCustomSlot = () => setCustomSlots(prev => [...prev, 'Any Role / Rifleman'])
+  const toggleSwapSlot = (slotIndex: number, role: string) => {
+    if (swappingSlot?.slotIndex === slotIndex) {
+      setSwappingSlot(null)
+    } else {
+      setSwappingSlot({ slotIndex, role })
+    }
+  }
+
+  const addCustomSlot = () => setCustomSlots(prev => [...prev, 'Rifleman'])
   const removeCustomSlot = (idx: number) => {
     setCustomSlots(prev => prev.filter((_, i) => i !== idx))
     setOverrides(prev => {
@@ -332,7 +367,32 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
       </div>
 
       <div className="content-grid commander-grid">
-        <Panel className="roster-panel" eyebrow="TABLE A / COMPANY 04" title="Personnel readiness" action={<button className="filter-button"><ArrowDownUp size={14} /> Sort: ORS</button>}>
+        {/* LEFT PANEL: PERSONNEL READINESS */}
+        <Panel
+          className="roster-panel"
+          eyebrow="TABLE A / COMPANY 04"
+          title="Personnel readiness"
+          action={
+            swappingSlot ? (
+              <button className="button danger small-button" onClick={() => setSwappingSlot(null)}>
+                <X size={14} /> Cancel Swap Mode
+              </button>
+            ) : (
+              <button className="filter-button"><ArrowDownUp size={14} /> Sort: ORS</button>
+            )
+          }
+        >
+          {swappingSlot && (
+            <div style={{ padding: '8px 12px', marginBottom: '12px', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid #3b82f6', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '0.82rem', color: '#93c5fd', fontWeight: 600 }}>
+                SELECT REPLACEMENT FOR: <span style={{ color: '#fff', textDecoration: 'underline' }}>{swappingSlot.role}</span>
+              </span>
+              <span style={{ fontSize: '0.75rem', color: '#93c5fd' }}>
+                Sorted by matching badge &amp; highest ORS
+              </span>
+            </div>
+          )}
+
           <div className="table-wrap">
             <table>
               <thead>
@@ -341,24 +401,65 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
                   <th>Status</th>
                   <th>ORS</th>
                   <th>Badges</th>
-                  <th>Duty window</th>
+                  <th>{swappingSlot ? 'Action' : 'Duty window'}</th>
                 </tr>
               </thead>
               <tbody>
-                {sorted.map(s => (
-                  <tr key={s.id} className={selectedIds.includes(s.id) ? 'selected-row' : ''}>
-                    <td><Person soldier={s} /></td>
-                    <td><StatusPill tone={s.status === 'Available' ? 'good' : 'danger'}>{s.status}</StatusPill><small>{s.reason}</small></td>
-                    <td><Readiness value={s.ors} /></td>
-                    <td><div className="badge-list">{s.badges.map(b => <span key={b}>{b}</span>)}</div></td>
-                    <td>{s.startTime} — {s.endTime}</td>
-                  </tr>
-                ))}
+                {sortedTableA.map(s => {
+                  const isCurrentlyInSquad = selectedIds.includes(s.id)
+                  const hasMatchingBadge = swappingSlot ? s.badges.includes(swappingSlot.role) : false
+                  const isAvailable = s.status === 'Available'
+
+                  return (
+                    <tr
+                      key={s.id}
+                      className={`${isCurrentlyInSquad ? 'selected-row' : ''} ${hasMatchingBadge && swappingSlot ? 'matching-badge-row' : ''}`}
+                      style={{
+                        backgroundColor: hasMatchingBadge && swappingSlot ? 'rgba(34, 197, 94, 0.08)' : undefined
+                      }}
+                    >
+                      <td><Person soldier={s} /></td>
+                      <td>
+                        <StatusPill tone={s.status === 'Available' ? 'good' : 'danger'}>{s.status}</StatusPill>
+                        <small>{s.reason}</small>
+                      </td>
+                      <td><Readiness value={s.ors} /></td>
+                      <td>
+                        <div className="badge-list">
+                          {s.badges.map(b => (
+                            <span
+                              key={b}
+                              style={swappingSlot && b === swappingSlot.role ? { border: '1px solid #22c55e', color: '#4ade80', fontWeight: 'bold' } : {}}
+                            >
+                              {b}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td>
+                        {swappingSlot ? (
+                          <button
+                            disabled={!isAvailable}
+                            className={`button small-button ${hasMatchingBadge ? 'success' : 'primary'}`}
+                            onClick={() => handleSelectReplacement(s.id)}
+                            style={{ padding: '4px 10px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                          >
+                            <UserCheck size={13} style={{ marginRight: '4px' }} />
+                            Select
+                          </button>
+                        ) : (
+                          `${s.startTime} — ${s.endTime}`
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
         </Panel>
 
+        {/* RIGHT PANEL: MISSION FORMATION & SQUAD PREVIEW */}
         <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className="icon-btn" aria-label="More options"><MoreHorizontal size={16} /></button>}>
           <div className="formation-select-container">
             <div className="eyebrow">FORMATION SKELETON</div>
@@ -377,8 +478,8 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
               <ChevronDown size={18} className="select-arrow" />
             </div>
 
-            {/* BADGE / COMPOSITION BREAKDOWN */}
-            <div className="skeleton-badge-breakdown" style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)' }}>
+            {/* REQUIRED BADGES & COMPOSITION BREAKDOWN */}
+            <div style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div className="eyebrow" style={{ fontSize: '0.68rem', marginBottom: '4px', color: '#8a99ad' }}>
                 REQUIRED BADGES &amp; SQUAD COMPOSITION
               </div>
@@ -393,81 +494,58 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
               <span>{skeleton.code} / MATCHED SQUAD PREVIEW</span>
               {formationKey === 'CUSTOM // FREE HAND' && (
                 <button className="button ghost small-button" onClick={addCustomSlot} style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
-                  + Add Custom Slot
+                  + Add Slot
                 </button>
               )}
             </div>
 
             {squadAssignments.map(({ slotIndex, soldierId, role }) => {
               const s = soldiers.find(x => x.id === soldierId)!
-              const isSwapping = activeSwapSlot === slotIndex
-
-              const currentlyAssignedOthers = squadAssignments.filter(a => a.slotIndex !== slotIndex).map(a => a.soldierId)
-              const candidateSoldiers = sorted.filter(c => c.status === 'Available' && !currentlyAssignedOthers.includes(c.id))
-
-              const matchingCandidates = candidateSoldiers.filter(c => c.badges.includes(role))
-              const otherCandidates = candidateSoldiers.filter(c => !c.badges.includes(role))
+              const isSwapping = swappingSlot?.slotIndex === slotIndex
 
               return (
-                <div key={`${slotIndex}-${role}`} style={{ marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div className="formation-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <Person soldier={s} />
-                    <span className="badge-list"><span>{role}</span></span>
-                    <Readiness value={s.readiness} />
-                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <div
+                  key={`${slotIndex}-${role}`}
+                  style={{
+                    marginBottom: '8px',
+                    padding: '8px',
+                    borderRadius: '4px',
+                    background: isSwapping ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255,255,255,0.02)',
+                    border: isSwapping ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.05)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: '1 1 140px', minWidth: 0 }}>
+                      <Person soldier={s} />
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span className="badge-list" style={{ margin: 0 }}>
+                        <span style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{role}</span>
+                      </span>
+                      <Readiness value={s.readiness} />
+
+                      {/* SWAP BUTTON */}
                       <button
-                        className="button ghost small-button"
-                        onClick={() => setActiveSwapSlot(isSwapping ? null : slotIndex)}
-                        style={{ fontSize: '0.72rem', padding: '3px 7px' }}
+                        className={`button ${isSwapping ? 'primary' : 'ghost'} small-button`}
+                        onClick={() => toggleSwapSlot(slotIndex, role)}
+                        style={{ fontSize: '0.72rem', padding: '3px 8px', whiteSpace: 'nowrap', flexShrink: 0 }}
                       >
-                        <RefreshCw size={12} /> {isSwapping ? 'Cancel' : 'Swap'}
+                        <RefreshCw size={12} style={{ marginRight: '3px' }} />
+                        {isSwapping ? 'Cancel' : 'Swap'}
                       </button>
+
                       {formationKey === 'CUSTOM // FREE HAND' && squadAssignments.length > 1 && (
                         <button
                           className="button danger small-button"
                           onClick={() => removeCustomSlot(slotIndex)}
-                          style={{ padding: '3px 6px' }}
+                          style={{ padding: '3px 6px', flexShrink: 0 }}
                         >
                           <X size={12} />
                         </button>
                       )}
                     </div>
                   </div>
-
-                  {/* SWAP PICKER DROPDOWN */}
-                  {isSwapping && (
-                    <div style={{ marginTop: '8px', padding: '8px', background: '#131b24', borderRadius: '4px', border: '1px solid #2d3b4e' }}>
-                      <div style={{ fontSize: '0.72rem', color: '#8a99ad', marginBottom: '6px' }}>
-                        Swap replacement for <strong style={{ color: '#60a5fa' }}>{role}</strong>:
-                      </div>
-                      <select
-                        className="tactical-select"
-                        style={{ width: '100%', fontSize: '0.8rem', padding: '6px', background: '#0d131a', color: '#fff', border: '1px solid #2d3b4e', borderRadius: '4px' }}
-                        defaultValue=""
-                        onChange={(e) => {
-                          if (e.target.value) handleSwap(slotIndex, e.target.value)
-                        }}
-                      >
-                        <option value="" disabled>-- Select candidate --</option>
-                        {matchingCandidates.length > 0 && (
-                          <optgroup label={`RECOMMENDED (Has "${role}" badge)`}>
-                            {matchingCandidates.map(c => (
-                              <option key={c.id} value={c.id}>
-                                {c.name} ({c.rank}) — Readiness: {c.readiness}%
-                              </option>
-                            ))}
-                          </optgroup>
-                        )}
-                        <optgroup label={formationKey === 'CUSTOM // FREE HAND' ? 'AVAILABLE PERSONNEL' : 'OTHER AVAILABLE PERSONNEL'}>
-                          {otherCandidates.map(c => (
-                            <option key={c.id} value={c.id}>
-                              {c.name} ({c.rank}) — Badges: {c.badges.join(', ')} (ORS: {c.readiness}%)
-                            </option>
-                          ))}
-                        </optgroup>
-                      </select>
-                    </div>
-                  )}
                 </div>
               )
             })}
