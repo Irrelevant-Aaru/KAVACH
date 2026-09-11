@@ -9,14 +9,14 @@ type TableARow = Soldier & { ors: number; lpi: number; startTime: string; endTim
 type TableBRow = { soldierId: string; name: string; startTime: string; endTime: string }
 
 const soldierNames = ['Arjun Singh', 'Vikram Rao', 'Rohit Sharma', 'Amit Kumar', 'Suresh Yadav', 'Manoj Verma', 'Rajesh Thakur', 'Karan Mehta', 'Nikhil Joshi', 'Deepak Chauhan', 'Anil Pawar', 'Prakash Das', 'Harish Nair', 'Ravi Shekhawat', 'Aditya Menon', 'Vivek Reddy', 'Gaurav Bhat', 'Sanjay Patil', 'Pankaj Saini', 'Mohit Kapoor', 'Ajay Rawat', 'Yash Mishra', 'Rakesh Tiwari', 'Sameer Khan', 'Imran Ansari', 'Faizan Ali', 'Surya Pratap', 'Dinesh Gurung', 'Mukul Sethi', 'Naveen Pillai', 'Abhishek Jha', 'Tarun Negi', 'Varun Malhotra', 'Siddharth Iyer', 'Akash Gupta', 'Bharat Solanki', 'Devendra Singh', 'Shivam Dubey', 'Manish Arora', 'Ankit Dutta', 'Rajat Bansal', 'Lokesh Yadav', 'Vishal Tomar', 'Raghav Bedi', 'Kartik Deshmukh', 'Omkar Shinde', 'Himanshu Gill', 'Aarav Bedi', 'Chirag Sood', 'Mohan Bisht', 'Sandeep Bora']
-const badgeCycle = [['Team Leader', 'Rifleman'], ['Driver'], ['Rifleman'], ['LMG Support'], ['Section Commander'], ['Radio Operator'], ['Marksman'], ['Mission Leader'], ['Pointman / Scout'], ['Combat Medic'], ['Convoy Commander']]
+const badgeCycle = [['Team Leader', 'Rifleman'], ['Driver'], ['Rifleman'], ['LMG Support'], ['Section Commander'], ['Radio Operator'], ['Marksman'], ['Mission Leader'], ['Pointman / Scout'], ['Combat Medic'], ['Convoy Commander', 'Gunner']]
 const soldiers: Soldier[] = soldierNames.map((name, index) => {
   const initials = name.split(' ').map(part => part[0]).join('')
   const badges = badgeCycle[index % badgeCycle.length]
   const readiness = Math.max(61, 98 - (index * 7) % 35)
   return { id: `A-${String(index + 1).padStart(3, '0')}`, name, initials, rank: index % 5 === 0 ? 'SGT' : index % 3 === 0 ? 'CPL' : 'RFL', badges, readiness, status: index % 13 === 0 ? 'Unavailable' : 'Available', reason: index % 13 === 0 ? 'Recovery window · 18h' : 'Ready for assignment' }
 })
-const tableA: TableARow[] = soldiers.map((soldier, index) => ({ ...soldier, ors: soldier.readiness, lpi: [94, 88, 76, 71, 62, 54][index], startTime: '—', endTime: '—' }))
+const tableA: TableARow[] = soldiers.map((soldier, index) => ({ ...soldier, ors: soldier.readiness, lpi: [94, 88, 76, 71, 62, 54][index] ?? 50, startTime: '—', endTime: '—' }))
 const roleMeta: Record<Role, { code: string; label: string; icon: typeof Target }> = { Commander: { code: 'CMD-01', label: 'Command deck', icon: Target }, 'NCO / Roster': { code: 'NCO-04', label: 'Roster operations', icon: ClipboardCheck }, Soldier: { code: 'SOL-014', label: 'Soldier view', icon: UserRound }, 'Leave Authority': { code: 'LVA-02', label: 'Leave authority', icon: ShieldCheck }, 'Medical Team': { code: 'MED-07', label: 'Medical team', icon: Stethoscope } }
 
 function Panel({ children, className = '', title, eyebrow, action }: { children: React.ReactNode; className?: string; title?: string; eyebrow?: string; action?: React.ReactNode }) { return <section className={`panel ${className}`}>{(title || eyebrow || action) && <div className="panel-head"><div>{eyebrow && <div className="eyebrow">{eyebrow}</div>}{title && <h2>{title}</h2>}</div>{action}</div>}{children}</section> }
@@ -28,8 +28,150 @@ function Person({ soldier }: { soldier: Soldier }) { return <div className="pers
 function Header({ role, onMenu, day, setDay }: { role: Role; onMenu: () => void; day: number; setDay: (d: number) => void }) { const meta = roleMeta[role]; const date = new Date(2026, 8, 7 + day); const stamp = `${date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} · 14:32 Z`; return <><header className="topbar"><button className="mobile-menu" onClick={onMenu} aria-label="Open navigation"><Menu size={20} /></button><div className="brand"><div className="brand-mark"><Crosshair size={19} /></div><div><strong>FIELD//OS</strong><span>decision support network</span></div></div><div className="top-context"><span className="live"><span />LIVE NETWORK</span><span className="divider" /><span>FOB NORTHSTAR</span><span className="divider" /><span>{stamp}</span></div><div className="top-actions"><button className="icon-btn" aria-label="Refresh"><RefreshCw size={16} /></button><div className="profile"><div className="avatar">AK</div><div><strong>CAPT. KIM</strong><span>{meta.code}</span></div></div></div></header><div className="timebar"><div><Clock3 size={15} /><strong>SIMULATED OPERATING TIME</strong><span>{stamp}</span></div><button onClick={() => setDay(0)} className={day === 0 ? 'active' : ''}>NOW</button><button onClick={() => setDay(Math.max(0, day - 1))}>− 1D</button><input aria-label="Scroll simulated date" type="range" min="0" max="3" value={day} onChange={e => setDay(Number(e.target.value))} /><button onClick={() => setDay(Math.min(3, day + 1))}>+ 1D</button><span className="time-limit">T+{day} DAYS</span></div></> }
 function Sidebar({ role, setRole, open, close }: { role: Role; setRole: (r: Role) => void; open: boolean; close: () => void }) { return <aside className={`sidebar ${open ? 'open' : ''}`}><div className="side-label">AUTHORIZED VIEWS <button onClick={close}><X size={15} /></button></div>{Object.entries(roleMeta).map(([key, meta]) => { const Icon = meta.icon; const item = key as Role; return <button key={key} className={`nav-item ${role === item ? 'active' : ''}`} onClick={() => { setRole(item); close() }}><Icon size={17} /><span>{meta.label}</span></button> })}<div className="side-spacer" /><div className="secure-box"><LockKeyhole size={16} /><div><strong>SECURE CHANNEL</strong><span>All events audited</span></div></div><div className="build">FIELD//OS v0.9.0<br /><span>PROTOTYPE / SIMULATION</span></div></aside> }
 
-const missionSkeletons: Record<string, { label: string; size: number; roles: string[]; code: string; tone: string }> = { 'BORDER PATROL': { label: 'Border Patrol (Routine)', size: 5, code: 'BP-01', tone: 'ROUTINE', roles: ['Team Leader', 'Driver', 'Rifleman', 'Rifleman', 'Rifleman'] }, 'QRT': { label: 'Quick Reaction Team (QRT)', size: 4, code: 'QRT-02', tone: 'RAPID RESPONSE', roles: ['Team Leader', 'Driver', 'LMG Support', 'Rifleman'] }, 'AREA DOMINATION': { label: 'Area Domination (High Altitude)', size: 6, code: 'AD-03', tone: 'HIGH ALTITUDE', roles: ['Section Commander', 'Radio Operator', 'Marksman', 'Rifleman', 'Rifleman', 'Rifleman'] }, 'CORDON & SEARCH': { label: 'Cordon & Search (CI/CT)', size: 5, code: 'CS-04', tone: 'COUNTER-INSURGENCY', roles: ['Mission Leader', 'Pointman / Scout', 'Combat Medic', 'Rifleman', 'Rifleman'] }, 'CONVOY ESCORT': { label: 'Convoy Escort', size: 4, code: 'CE-05', tone: 'MOVEMENT SECURITY', roles: ['Convoy Commander', 'Driver', 'Driver', 'Gunner'] } }
-function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => void; dispatched: string[] }) { const [formation, setFormation] = useState('BORDER PATROL'); const sorted = useMemo(() => [...tableA].sort((a, b) => b.ors - a.ors), []); const skeleton = missionSkeletons[formation] ?? missionSkeletons['BORDER PATROL']; const selected = skeleton.roles.reduce<Soldier[]>((picked, role) => { const available = sorted.filter(soldier => soldier.status === 'Available' && !picked.some(existing => existing.id === soldier.id)); const match = available.find(soldier => soldier.badges.includes(role)) ?? (role === 'Rifleman' ? available.find(soldier => soldier.badges.includes('Rifleman')) : undefined); return match ? [...picked, match] : picked }, []).map(soldier => soldier.id); const choose = (name: string) => setFormation(name); return <><div className="page-title"><div><div className="eyebrow">COMMANDER / COMPANY 04</div><h1>Command deck</h1><p>Table A access is company-scoped. The model supplies signals; command decides.</p></div><StatusPill tone={dispatched.length ? 'good' : 'neutral'}>{dispatched.length ? `${dispatched.length} dispatched` : 'Formation ready'}</StatusPill></div><div className="kpi-grid"><Kpi label="Company strength" value="42 / 48" detail="6 unavailable" icon={Users} /><Kpi label="Avg ORS" value="84.6" detail="Operational readiness" tone="good" icon={Activity} /><Kpi label="On duty" value={`${dispatched.length}`} detail="Current dispatch" tone="warn" icon={Crosshair} /><Kpi label="Model signal" value="STABLE" detail="Last run 02:00 Z" icon={Zap} /></div><div className="content-grid commander-grid"><Panel className="roster-panel" eyebrow="TABLE A / COMPANY 04" title="Personnel readiness" action={<button className="filter-button"><ArrowDownUp size={14} /> Sort: ORS</button>}><div className="table-wrap"><table><thead><tr><th>Personnel</th><th>Status</th><th>ORS</th><th>Badges</th><th>Duty window</th></tr></thead><tbody>{sorted.map(s => <tr key={s.id} className={selected.includes(s.id) ? 'selected-row' : ''}><td><Person soldier={s} /></td><td><StatusPill tone={s.status === 'Available' ? 'good' : 'danger'}>{s.status}</StatusPill><small>{s.reason}</small></td><td><Readiness value={s.ors} /></td><td><div className="badge-list">{s.badges.map(b => <span key={b}>{b}</span>)}</div></td><td>{s.startTime} — {s.endTime}</td></tr>)}</tbody></table></div></Panel><Panel className="formation-panel" eyebrow="MISSION FORMATION" title="Saved skeletons"><div className="formation-list"><button className={formation === 'BORDER PATROL' ? 'active' : ''} onClick={() => choose('BORDER PATROL')}><span><strong>BORDER PATROL</strong><small>1 team leader · 1 driver · 3 riflemen</small></span><span className="formation-count">05</span></button><button className={formation === 'ALPHA // 03' ? 'active' : ''} onClick={() => choose('ALPHA // 03')}><span><strong>QRT · QUICK REACTION</strong><small>1 leader · 1 driver · 1 LMG · 1 rifleman</small></span><span className="formation-count">03</span></button></div><div className="formation-preview"><div className="eyebrow">{formation} / TOP ORS SELECTION</div>{selected.map(id => { const s = soldiers.find(x => x.id === id)!; return <div className="formation-row" key={id}><Person soldier={s} /><span>{s.badges[0]}</span><Readiness value={s.readiness} /></div> })}</div><button className="button full primary" onClick={() => dispatch(selected)}><Crosshair size={15} /> DISPATCH SQUAD ON MISSION</button>{dispatched.length > 0 && <small className="dispatch-note"><Check size={13} /> Only dispatched personnel are now visible to Roster Operations and Soldier View.</small>}</Panel></div></> }
+const missionSkeletons: Record<string, { label: string; size: number; roles: string[]; code: string; tone: string; summary: string }> = {
+  'BORDER PATROL': {
+    label: 'Border Patrol (Routine)',
+    size: 5,
+    code: 'BP-01',
+    tone: 'ROUTINE',
+    roles: ['Team Leader', 'Driver', 'Rifleman', 'Rifleman', 'Rifleman'],
+    summary: '1 team leader · 1 driver · 3 riflemen'
+  },
+  'QRT': {
+    label: 'Quick Reaction Team (QRT)',
+    size: 4,
+    code: 'QRT-02',
+    tone: 'RAPID RESPONSE',
+    roles: ['Team Leader', 'Driver', 'LMG Support', 'Rifleman'],
+    summary: '1 leader · 1 driver · 1 LMG · 1 rifleman'
+  },
+  'AREA DOMINATION': {
+    label: 'Area Domination (High Altitude)',
+    size: 6,
+    code: 'AD-03',
+    tone: 'HIGH ALTITUDE',
+    roles: ['Section Commander', 'Radio Operator', 'Marksman', 'Rifleman', 'Rifleman', 'Rifleman'],
+    summary: '1 section cmdr · 1 radio · 1 marksman · 3 riflemen'
+  },
+  'CORDON & SEARCH': {
+    label: 'Cordon & Search (CI/CT)',
+    size: 5,
+    code: 'CS-04',
+    tone: 'COUNTER-INSURGENCY',
+    roles: ['Mission Leader', 'Pointman / Scout', 'Combat Medic', 'Rifleman', 'Rifleman'],
+    summary: '1 mission leader · 1 scout · 1 medic · 2 riflemen'
+  },
+  'CONVOY ESCORT': {
+    label: 'Convoy Escort',
+    size: 4,
+    code: 'CE-05',
+    tone: 'MOVEMENT SECURITY',
+    roles: ['Convoy Commander', 'Driver', 'Driver', 'Gunner'],
+    summary: '1 convoy cmdr · 2 drivers · 1 gunner'
+  }
+}
+
+function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => void; dispatched: string[] }) {
+  const [formation, setFormation] = useState('BORDER PATROL')
+  const sorted = useMemo(() => [...tableA].sort((a, b) => b.ors - a.ors), [])
+  const skeleton = missionSkeletons[formation] ?? missionSkeletons['BORDER PATROL']
+
+  const selected = skeleton.roles.reduce<Soldier[]>((picked, role) => {
+    const available = sorted.filter(soldier => soldier.status === 'Available' && !picked.some(existing => existing.id === soldier.id))
+    const match = available.find(soldier => soldier.badges.includes(role)) ?? available.find(soldier => soldier.badges.includes('Rifleman')) ?? available[0]
+    return match ? [...picked, match] : picked
+  }, []).map(soldier => soldier.id)
+
+  const choose = (key: string) => setFormation(key)
+
+  return (
+    <>
+      <div className="page-title">
+        <div>
+          <div className="eyebrow">COMMANDER / COMPANY 04</div>
+          <h1>Command deck</h1>
+          <p>Table A access is company-scoped. Select mission formation to evaluate unit readiness.</p>
+        </div>
+        <StatusPill tone={dispatched.length ? 'good' : 'neutral'}>
+          {dispatched.length ? `${dispatched.length} dispatched` : 'Formation ready'}
+        </StatusPill>
+      </div>
+
+      <div className="kpi-grid">
+        <Kpi label="Company strength" value="42 / 48" detail="6 unavailable" icon={Users} />
+        <Kpi label="Avg ORS" value="84.6" detail="Operational readiness" tone="good" icon={Activity} />
+        <Kpi label="On duty" value={`${dispatched.length}`} detail="Current dispatch" tone="warn" icon={Crosshair} />
+        <Kpi label="Model signal" value="STABLE" detail="Last run 02:00 Z" icon={Zap} />
+      </div>
+
+      <div className="content-grid commander-grid">
+        <Panel className="roster-panel" eyebrow="TABLE A / COMPANY 04" title="Personnel readiness" action={<button className="filter-button"><ArrowDownUp size={14} /> Sort: ORS</button>}>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Personnel</th>
+                  <th>Status</th>
+                  <th>ORS</th>
+                  <th>Badges</th>
+                  <th>Duty window</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map(s => (
+                  <tr key={s.id} className={selected.includes(s.id) ? 'selected-row' : ''}>
+                    <td><Person soldier={s} /></td>
+                    <td><StatusPill tone={s.status === 'Available' ? 'good' : 'danger'}>{s.status}</StatusPill><small>{s.reason}</small></td>
+                    <td><Readiness value={s.ors} /></td>
+                    <td><div className="badge-list">{s.badges.map(b => <span key={b}>{b}</span>)}</div></td>
+                    <td>{s.startTime} — {s.endTime}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
+
+        <Panel className="formation-panel" eyebrow="MISSION FORMATIONS" title="Select Squad Type">
+          <div className="formation-list">
+            {Object.entries(missionSkeletons).map(([key, skel]) => (
+              <button key={key} className={formation === key ? 'active' : ''} onClick={() => choose(key)}>
+                <span>
+                  <strong>{skel.label}</strong>
+                  <small>{skel.summary}</small>
+                </span>
+                <span className="formation-count">{String(skel.size).padStart(2, '0')}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="formation-preview">
+            <div className="eyebrow">{skeleton.label.toUpperCase()} / AUTO-MATCHED SQUAD</div>
+            {selected.map(id => {
+              const s = soldiers.find(x => x.id === id)!
+              return (
+                <div className="formation-row" key={id}>
+                  <Person soldier={s} />
+                  <span>{s.badges[0]}</span>
+                  <Readiness value={s.readiness} />
+                </div>
+              )
+            })}
+          </div>
+
+          <button className="button full primary" onClick={() => dispatch(selected)}>
+            <Crosshair size={15} /> DISPATCH SQUAD ON MISSION
+          </button>
+          {dispatched.length > 0 && (
+            <small className="dispatch-note">
+              <Check size={13} /> Dispatched squad is active on Roster & Soldier View.
+            </small>
+          )}
+        </Panel>
+      </div>
+    </>
+  )
+}
 
 function NcoView({ dispatched, checkedIn, checkIn, tableB, markReturn, day }: { dispatched: string[]; checkedIn: string[]; checkIn: (id: string) => void; tableB: TableBRow[]; markReturn: (id: string) => void; day: number }) { const active = dispatched.map(id => soldiers.find(s => s.id === id)!).filter(Boolean); return <><div className="page-title"><div><div className="eyebrow">NCO / ROSTER OPERATIONS</div><h1>Duty control</h1><p>Only commander-dispatched personnel appear here. Check-in creates a Table B row.</p></div><StatusPill tone="good">Clock synchronized · T+{day}d</StatusPill></div><div className="kpi-grid"><Kpi label="Dispatched squad" value={`${active.length}`} detail="Commander handoff" tone="warn" icon={Clock3} /><Kpi label="Checked in" value={`${checkedIn.length}`} detail="Table B rows created" icon={Database} /><Kpi label="Returns" value={`${tableB.filter(r => r.endTime !== '—').length}`} detail="End time uses clock" tone="good" icon={TimerReset} /><Kpi label="Phone notices" value={`${checkedIn.length}`} detail="Soldier logs requested" icon={Zap} /></div><Panel eyebrow="COMMANDER HANDOFF / DISPATCHED ONLY" title="Check-in zone" action={<StatusPill tone="warn">LEVEL 02 · STANDARD</StatusPill>}><div className="check-list">{active.length ? active.map(s => { const row = tableB.find(r => r.soldierId === s.id); const isIn = checkedIn.includes(s.id); const isReturned = row?.endTime !== '—'; return <div className={`check-row ${isIn ? 'done' : ''}`} key={s.id}><Person soldier={s} /><div className="check-meta"><span>{isIn ? `START ${row?.startTime}` : 'Awaiting check-in'}</span>{isIn && !isReturned && <small className="phone-notice"><Zap size={11} /> Phone notification sent</small>}</div>{!isIn ? <button className="button primary small-button" onClick={() => checkIn(s.id)}>Check in</button> : !isReturned ? <button className="button ghost small-button" onClick={() => markReturn(s.id)}>Record return</button> : <StatusPill tone="good">Returned {row?.endTime}</StatusPill>}</div> }) : <div className="empty-state"><p>No dispatch received. Dispatch a squad from Command deck first.</p></div>}</div></Panel></> }
 
@@ -38,4 +180,41 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
 function LeaveView() { const [decisions, setDecisions] = useState<Record<string, string>>({}); const requests = tableA.slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: s.lpi, soldier: s })); return <><div className="page-title"><div><div className="eyebrow">LEAVE AUTHORITY / QUEUE</div><h1>Leave review</h1><p>Only leave signals and roster status are visible. Operational readiness is withheld.</p></div><div className="quota"><span>MONTHLY QUOTA</span><strong>08 <small>/ 12</small></strong></div></div><div className="kpi-grid"><Kpi label="Pending applications" value="07" detail="3 high priority" tone="warn" icon={Users} /><Kpi label="Quota remaining" value="04" detail="September cycle" icon={ShieldCheck} /><Kpi label="Approved this cycle" value="08" detail="Last approved 05 SEP" tone="good" icon={CheckCircle2} /><Kpi label="Review SLA" value="18h" detail="Oldest request LV-104" icon={Clock3} /></div><Panel eyebrow="TABLE A / LEAVE FIELDS ONLY" title="Pending applications"><div className="table-wrap"><table><thead><tr><th>Applicant</th><th>Badges</th><th>LPI</th><th>Status</th><th>Decision</th></tr></thead><tbody>{requests.map(r => <tr key={r.id}><td><Person soldier={r.soldier} /><small>{r.id} · {r.dates}</small></td><td><div className="badge-list">{r.soldier.badges.map(b => <span key={b}>{b}</span>)}</div></td><td><Readiness value={r.score} /></td><td>{r.soldier.status}</td><td>{decisions[r.id] ? <StatusPill tone={decisions[r.id] === 'Approved' ? 'good' : 'danger'}>{decisions[r.id]}</StatusPill> : <div className="decision-actions"><button className="button success small-button" onClick={() => setDecisions({ ...decisions, [r.id]: 'Approved' })}>Approve</button><button className="button danger small-button" onClick={() => setDecisions({ ...decisions, [r.id]: 'Rejected' })}>Reject</button></div>}</td></tr>)}</tbody></table></div></Panel></> }
 function MedicalView() { const [resolved, setResolved] = useState<string[]>([]); const cases = [{ id: 'MED-201', name: 'D. Morgan', issue: 'Lower back strain', level: 'RESTRICTED' }, { id: 'MED-204', name: 'T. Williams', issue: 'Knee impact assessment', level: 'REVIEW' }, { id: 'MED-198', name: 'K. Rivera', issue: 'Sleep deficit trend', level: 'MONITOR' }]; return <><div className="page-title"><div><div className="eyebrow">MEDICAL TEAM / COMPANY 04</div><h1>Health coverage</h1><p>Scoped medical view. Operational and leave data are withheld.</p></div><StatusPill tone="good">3 active cases</StatusPill></div><div className="kpi-grid"><Kpi label="Company health" value="92%" detail="+1.8 this week" tone="good" icon={HeartPulse} /><Kpi label="Urgent review" value="01" detail="Clinical attention" tone="danger" icon={Siren} /><Kpi label="Restricted duty" value="03" detail="Across 2 platoons" tone="warn" icon={ShieldCheck} /><Kpi label="Follow-ups due" value="05" detail="Next 72 hours" icon={Clock3} /></div><Panel eyebrow="CASEBOARD / COMPANY 04" title="Active health cases"><div className="case-list">{cases.map(c => <div className="case-card" key={c.id}><div className="case-head"><span className="case-code">{c.id}</span><StatusPill tone={c.level === 'REVIEW' ? 'danger' : 'warn'}>{c.level}</StatusPill></div><div className="case-body"><div className="avatar">{c.name.split(' ').map(x => x[0])}</div><div><strong>{c.name}</strong><span>{c.issue}</span><small>Scoped clinical detail available</small></div></div><button className={`button full ${resolved.includes(c.id) ? 'success' : 'ghost'}`} onClick={() => setResolved(x => [...x, c.id])}>{resolved.includes(c.id) ? <><Check size={15} /> Follow-up logged</> : <><Stethoscope size={15} /> Log treatment update</>}</button></div>)}</div></Panel></> }
 
-export default function Page() { const [role, setRole] = useState<Role>('Commander'); const [menuOpen, setMenuOpen] = useState(false); const [day, setDay] = useState(0); const [dispatched, setDispatched] = useState<string[]>([]); const [checkedIn, setCheckedIn] = useState<string[]>([]); const [tableB, setTableB] = useState<TableBRow[]>([]); const nowLabel = `07 SEP 2026 · 14:32 Z +${day}D`; const checkIn = (id: string) => { if (checkedIn.includes(id)) return; const soldier = soldiers.find(s => s.id === id)!; setCheckedIn(x => [...x, id]); setTableB(rows => [...rows, { soldierId: id, name: soldier.name, startTime: nowLabel, endTime: '—' }]) }; const markReturn = (id: string) => setTableB(rows => rows.map(row => row.soldierId === id ? { ...row, endTime: nowLabel } : row)); const View = role === 'Commander' ? CommanderView : role === 'NCO / Roster' ? NcoView : role === 'Soldier' ? SoldierView : role === 'Leave Authority' ? LeaveView : MedicalView; return <main className="app-shell"><Header role={role} onMenu={() => setMenuOpen(true)} day={day} setDay={setDay} /><Sidebar role={role} setRole={setRole} open={menuOpen} close={() => setMenuOpen(false)} /><div className="main"><div className="role-switcher"><span>PROTOTYPE VIEW</span>{Object.keys(roleMeta).map(item => <button key={item} className={role === item ? 'active' : ''} onClick={() => setRole(item as Role)}>{item === 'NCO / Roster' ? 'NCO' : item === 'Leave Authority' ? 'LEAVE' : item === 'Medical Team' ? 'MED' : item.toUpperCase()}</button>)}</div><View {...(role === 'Commander' ? { dispatch: (ids: string[]) => setDispatched(ids), dispatched } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : {}) as never} /></div><div className="scanline" /></main> }
+export default function Page() {
+  const [role, setRole] = useState<Role>('Commander')
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [day, setDay] = useState(0)
+  const [dispatched, setDispatched] = useState<string[]>([])
+  const [checkedIn, setCheckedIn] = useState<string[]>([])
+  const [tableB, setTableB] = useState<TableBRow[]>([])
+
+  const nowLabel = `07 SEP 2026 · 14:32 Z +${day}D`
+  const checkIn = (id: string) => {
+    if (checkedIn.includes(id)) return
+    const soldier = soldiers.find(s => s.id === id)!
+    setCheckedIn(x => [...x, id])
+    setTableB(rows => [...rows, { soldierId: id, name: soldier.name, startTime: nowLabel, endTime: '—' }])
+  }
+  const markReturn = (id: string) => setTableB(rows => rows.map(row => row.soldierId === id ? { ...row, endTime: nowLabel } : row))
+
+  const View = role === 'Commander' ? CommanderView : role === 'NCO / Roster' ? NcoView : role === 'Soldier' ? SoldierView : role === 'Leave Authority' ? LeaveView : MedicalView
+
+  return (
+    <main className="app-shell">
+      <Header role={role} onMenu={() => setMenuOpen(true)} day={day} setDay={setDay} />
+      <Sidebar role={role} setRole={setRole} open={menuOpen} close={() => setMenuOpen(false)} />
+      <div className="main">
+        <div className="role-switcher">
+          <span>PROTOTYPE VIEW</span>
+          {Object.keys(roleMeta).map(item => (
+            <button key={item} className={role === item ? 'active' : ''} onClick={() => setRole(item as Role)}>
+              {item === 'NCO / Roster' ? 'NCO' : item === 'Leave Authority' ? 'LEAVE' : item === 'Medical Team' ? 'MED' : item.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => setDispatched(ids), dispatched } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : {}) as never} />
+      </div>
+      <div className="scanline" />
+    </main>
+  )
+}
