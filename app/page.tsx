@@ -219,32 +219,32 @@ function Sidebar({ role, setRole, open, close }: { role: Role; setRole: (r: Role
 }
 
 const missionSkeletons: Record<string, { label: string; code: string; roles: string[]; summary: string }> = {
-  'ALPHA // 03': {
-    label: 'ALPHA // 03',
-    code: 'AD-03',
+  'AREA PATROL // AP-01': {
+    label: 'AREA PATROL // AP-01',
+    code: 'AP-01',
     roles: ['Section Commander', 'Radio Operator', 'Marksman', 'Rifleman', 'Rifleman', 'Rifleman'],
     summary: '1 Section Cmdr · 1 Radio · 1 Marksman · 3 Riflemen',
   },
-  'ALPHA // 01': {
-    label: 'ALPHA // 01',
-    code: 'BP-01',
+  'BORDER PATROL // BP-02': {
+    label: 'BORDER PATROL // BP-02',
+    code: 'BP-02',
     roles: ['Team Leader', 'Driver', 'Rifleman', 'Rifleman', 'Rifleman'],
     summary: '1 Team Leader · 1 Driver · 3 Riflemen',
   },
-  'ALPHA // 02': {
-    label: 'ALPHA // 02',
-    code: 'QRT-02',
+  'QUICK REACTION // QRF-03': {
+    label: 'QUICK REACTION // QRF-03',
+    code: 'QRF-03',
     roles: ['Team Leader', 'Driver', 'LMG Support', 'Rifleman'],
     summary: '1 Team Leader · 1 Driver · 1 LMG · 1 Rifleman',
   },
-  'BRAVO // 04': {
-    label: 'BRAVO // 04',
-    code: 'CS-04',
+  'RECONNAISSANCE // REC-04': {
+    label: 'RECONNAISSANCE // REC-04',
+    code: 'REC-04',
     roles: ['Mission Leader', 'Pointman / Scout', 'Combat Medic', 'Rifleman', 'Rifleman'],
     summary: '1 Mission Leader · 1 Scout · 1 Medic · 2 Riflemen',
   },
-  'CHARLIE // 05': {
-    label: 'CHARLIE // 05',
+  'CONVOY ESCORT // CE-05': {
+    label: 'CONVOY ESCORT // CE-05',
     code: 'CE-05',
     roles: ['Convoy Commander', 'Driver', 'Driver', 'Gunner'],
     summary: '1 Convoy Cmdr · 2 Drivers · 1 Gunner',
@@ -252,9 +252,9 @@ const missionSkeletons: Record<string, { label: string; code: string; roles: str
 }
 
 function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => void; dispatched: string[] }) {
-  const [formationKey, setFormationKey] = useState('ALPHA // 03')
+  const [formationKey, setFormationKey] = useState('AREA PATROL // AP-01')
   const sorted = useMemo(() => [...tableA].sort((a, b) => b.ors - a.ors), [])
-  const skeleton = missionSkeletons[formationKey] ?? missionSkeletons['ALPHA // 03']
+  const skeleton = missionSkeletons[formationKey] ?? missionSkeletons['AREA PATROL // AP-01']
 
   const squadAssignments = useMemo(() => {
     const picked: { soldierId: string; role: string }[] = []
