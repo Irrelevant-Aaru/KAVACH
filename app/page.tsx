@@ -219,56 +219,97 @@ function Sidebar({ role, setRole, open, close }: { role: Role; setRole: (r: Role
 }
 
 const missionSkeletons: Record<string, { label: string; code: string; roles: string[]; summary: string }> = {
+  'CUSTOM // FREE HAND': {
+    label: 'CUSTOM // FREE HAND (Unconstrained)',
+    code: 'CUSTOM',
+    roles: ['Rifleman', 'Rifleman', 'Rifleman', 'Rifleman'],
+    summary: 'Unconstrained Manual Selection · Pick or Swap Any Available Personnel',
+  },
   'AREA PATROL // AP-01': {
     label: 'AREA PATROL // AP-01',
     code: 'AP-01',
     roles: ['Section Commander', 'Radio Operator', 'Marksman', 'Rifleman', 'Rifleman', 'Rifleman'],
-    summary: '1 Section Cmdr · 1 Radio · 1 Marksman · 3 Riflemen',
+    summary: '1x Section Cmdr · 1x Radio Operator · 1x Marksman · 3x Riflemen',
   },
   'BORDER PATROL // BP-02': {
     label: 'BORDER PATROL // BP-02',
     code: 'BP-02',
     roles: ['Team Leader', 'Driver', 'Rifleman', 'Rifleman', 'Rifleman'],
-    summary: '1 Team Leader · 1 Driver · 3 Riflemen',
+    summary: '1x Team Leader · 1x Driver · 3x Riflemen',
   },
   'QUICK REACTION // QRF-03': {
     label: 'QUICK REACTION // QRF-03',
     code: 'QRF-03',
     roles: ['Team Leader', 'Driver', 'LMG Support', 'Rifleman'],
-    summary: '1 Team Leader · 1 Driver · 1 LMG · 1 Rifleman',
+    summary: '1x Team Leader · 1x Driver · 1x LMG Support · 1x Rifleman',
   },
   'RECONNAISSANCE // REC-04': {
     label: 'RECONNAISSANCE // REC-04',
     code: 'REC-04',
     roles: ['Mission Leader', 'Pointman / Scout', 'Combat Medic', 'Rifleman', 'Rifleman'],
-    summary: '1 Mission Leader · 1 Scout · 1 Medic · 2 Riflemen',
+    summary: '1x Mission Leader · 1x Pointman/Scout · 1x Combat Medic · 2x Riflemen',
   },
   'CONVOY ESCORT // CE-05': {
     label: 'CONVOY ESCORT // CE-05',
     code: 'CE-05',
     roles: ['Convoy Commander', 'Driver', 'Driver', 'Gunner'],
-    summary: '1 Convoy Cmdr · 2 Drivers · 1 Gunner',
+    summary: '1x Convoy Cmdr · 2x Drivers · 1x Gunner',
   },
 }
 
 function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => void; dispatched: string[] }) {
   const [formationKey, setFormationKey] = useState('AREA PATROL // AP-01')
+  const [overrides, setOverrides] = useState<Record<number, string>>({})
+  const [activeSwapSlot, setActiveSwapSlot] = useState<number | null>(null)
+  const [customSlots, setCustomSlots] = useState<string[]>(['Rifleman', 'Rifleman', 'Rifleman', 'Rifleman'])
+
   const sorted = useMemo(() => [...tableA].sort((a, b) => b.ors - a.ors), [])
   const skeleton = missionSkeletons[formationKey] ?? missionSkeletons['AREA PATROL // AP-01']
 
+  const handleFormationChange = (key: string) => {
+    setFormationKey(key)
+    setOverrides({})
+    setActiveSwapSlot(null)
+  }
+
+  const rolesToFill = formationKey === 'CUSTOM // FREE HAND' ? customSlots : skeleton.roles
+
   const squadAssignments = useMemo(() => {
-    const picked: { soldierId: string; role: string }[] = []
-    skeleton.roles.forEach(roleNeeded => {
+    const picked: { slotIndex: number; soldierId: string; role: string }[] = []
+
+    rolesToFill.forEach((roleNeeded, slotIdx) => {
+      if (overrides[slotIdx]) {
+        picked.push({ slotIndex: slotIdx, soldierId: overrides[slotIdx], role: roleNeeded })
+        return
+      }
+
       const available = sorted.filter(s => s.status === 'Available' && !picked.some(p => p.soldierId === s.id))
       const match = available.find(s => s.badges.includes(roleNeeded)) ?? available.find(s => s.badges.includes('Rifleman')) ?? available[0]
+
       if (match) {
-        picked.push({ soldierId: match.id, role: roleNeeded })
+        picked.push({ slotIndex: slotIdx, soldierId: match.id, role: roleNeeded })
       }
     })
+
     return picked
-  }, [formationKey, sorted, skeleton.roles])
+  }, [rolesToFill, overrides, sorted])
 
   const selectedIds = squadAssignments.map(a => a.soldierId)
+
+  const handleSwap = (slotIndex: number, newSoldierId: string) => {
+    setOverrides(prev => ({ ...prev, [slotIndex]: newSoldierId }))
+    setActiveSwapSlot(null)
+  }
+
+  const addCustomSlot = () => setCustomSlots(prev => [...prev, 'Any Role / Rifleman'])
+  const removeCustomSlot = (idx: number) => {
+    setCustomSlots(prev => prev.filter((_, i) => i !== idx))
+    setOverrides(prev => {
+      const next = { ...prev }
+      delete next[idx]
+      return next
+    })
+  }
 
   return (
     <>
@@ -324,7 +365,7 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
             <div className="tactical-select-wrapper">
               <select
                 value={formationKey}
-                onChange={e => setFormationKey(e.target.value)}
+                onChange={e => handleFormationChange(e.target.value)}
                 className="tactical-select"
               >
                 {Object.entries(missionSkeletons).map(([key, skel]) => (
@@ -335,18 +376,98 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
               </select>
               <ChevronDown size={18} className="select-arrow" />
             </div>
-            <div className="subtext-stamp">Last saved 06 SEP · 18:40 Z</div>
+
+            {/* BADGE / COMPOSITION BREAKDOWN */}
+            <div className="skeleton-badge-breakdown" style={{ marginTop: '10px', padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '4px', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="eyebrow" style={{ fontSize: '0.68rem', marginBottom: '4px', color: '#8a99ad' }}>
+                REQUIRED BADGES &amp; SQUAD COMPOSITION
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#d1d5db', fontWeight: 500 }}>
+                {skeleton.summary}
+              </div>
+            </div>
           </div>
 
-          <div className="formation-preview">
-            <div className="eyebrow-sub">{skeleton.code} / MATCHED SQUAD PREVIEW</div>
-            {squadAssignments.map(({ soldierId, role }) => {
+          <div className="formation-preview" style={{ marginTop: '16px' }}>
+            <div className="eyebrow-sub" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+              <span>{skeleton.code} / MATCHED SQUAD PREVIEW</span>
+              {formationKey === 'CUSTOM // FREE HAND' && (
+                <button className="button ghost small-button" onClick={addCustomSlot} style={{ fontSize: '0.72rem', padding: '2px 8px' }}>
+                  + Add Custom Slot
+                </button>
+              )}
+            </div>
+
+            {squadAssignments.map(({ slotIndex, soldierId, role }) => {
               const s = soldiers.find(x => x.id === soldierId)!
+              const isSwapping = activeSwapSlot === slotIndex
+
+              const currentlyAssignedOthers = squadAssignments.filter(a => a.slotIndex !== slotIndex).map(a => a.soldierId)
+              const candidateSoldiers = sorted.filter(c => c.status === 'Available' && !currentlyAssignedOthers.includes(c.id))
+
+              const matchingCandidates = candidateSoldiers.filter(c => c.badges.includes(role))
+              const otherCandidates = candidateSoldiers.filter(c => !c.badges.includes(role))
+
               return (
-                <div className="formation-row" key={`${soldierId}-${role}`}>
-                  <Person soldier={s} />
-                  <span className="badge-list"><span>{role}</span></span>
-                  <Readiness value={s.readiness} />
+                <div key={`${slotIndex}-${role}`} style={{ marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div className="formation-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <Person soldier={s} />
+                    <span className="badge-list"><span>{role}</span></span>
+                    <Readiness value={s.readiness} />
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <button
+                        className="button ghost small-button"
+                        onClick={() => setActiveSwapSlot(isSwapping ? null : slotIndex)}
+                        style={{ fontSize: '0.72rem', padding: '3px 7px' }}
+                      >
+                        <RefreshCw size={12} /> {isSwapping ? 'Cancel' : 'Swap'}
+                      </button>
+                      {formationKey === 'CUSTOM // FREE HAND' && squadAssignments.length > 1 && (
+                        <button
+                          className="button danger small-button"
+                          onClick={() => removeCustomSlot(slotIndex)}
+                          style={{ padding: '3px 6px' }}
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* SWAP PICKER DROPDOWN */}
+                  {isSwapping && (
+                    <div style={{ marginTop: '8px', padding: '8px', background: '#131b24', borderRadius: '4px', border: '1px solid #2d3b4e' }}>
+                      <div style={{ fontSize: '0.72rem', color: '#8a99ad', marginBottom: '6px' }}>
+                        Swap replacement for <strong style={{ color: '#60a5fa' }}>{role}</strong>:
+                      </div>
+                      <select
+                        className="tactical-select"
+                        style={{ width: '100%', fontSize: '0.8rem', padding: '6px', background: '#0d131a', color: '#fff', border: '1px solid #2d3b4e', borderRadius: '4px' }}
+                        defaultValue=""
+                        onChange={(e) => {
+                          if (e.target.value) handleSwap(slotIndex, e.target.value)
+                        }}
+                      >
+                        <option value="" disabled>-- Select candidate --</option>
+                        {matchingCandidates.length > 0 && (
+                          <optgroup label={`RECOMMENDED (Has "${role}" badge)`}>
+                            {matchingCandidates.map(c => (
+                              <option key={c.id} value={c.id}>
+                                {c.name} ({c.rank}) — Readiness: {c.readiness}%
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                        <optgroup label={formationKey === 'CUSTOM // FREE HAND' ? 'AVAILABLE PERSONNEL' : 'OTHER AVAILABLE PERSONNEL'}>
+                          {otherCandidates.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.name} ({c.rank}) — Badges: {c.badges.join(', ')} (ORS: {c.readiness}%)
+                            </option>
+                          ))}
+                        </optgroup>
+                      </select>
+                    </div>
+                  )}
                 </div>
               )
             })}
