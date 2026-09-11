@@ -6,6 +6,7 @@ import {
   ArrowDownUp,
   Check,
   CheckCircle2,
+  ChevronDown,
   ClipboardCheck,
   Clock3,
   Crosshair,
@@ -13,6 +14,7 @@ import {
   HeartPulse,
   LockKeyhole,
   Menu,
+  MoreHorizontal,
   RefreshCw,
   ShieldCheck,
   Siren,
@@ -216,53 +218,43 @@ function Sidebar({ role, setRole, open, close }: { role: Role; setRole: (r: Role
   )
 }
 
-const missionSkeletons: Record<string, { label: string; size: number; roles: string[]; code: string; tone: string; summary: string }> = {
-  'BORDER PATROL': {
-    label: 'Border Patrol (Routine)',
-    size: 5,
-    code: 'BP-01',
-    tone: 'ROUTINE',
-    roles: ['Team Leader', 'Driver', 'Rifleman', 'Rifleman', 'Rifleman'],
-    summary: '1 Team Leader · 1 Driver · 3 Riflemen',
-  },
-  'QRT': {
-    label: 'Quick Reaction Team (QRT)',
-    size: 4,
-    code: 'QRT-02',
-    tone: 'RAPID RESPONSE',
-    roles: ['Team Leader', 'Driver', 'LMG Support', 'Rifleman'],
-    summary: '1 Team Leader · 1 Driver · 1 LMG · 1 Rifleman',
-  },
-  'AREA DOMINATION': {
-    label: 'Area Domination',
-    size: 6,
+const missionSkeletons: Record<string, { label: string; code: string; roles: string[]; summary: string }> = {
+  'ALPHA // 03': {
+    label: 'ALPHA // 03',
     code: 'AD-03',
-    tone: 'HIGH ALTITUDE',
     roles: ['Section Commander', 'Radio Operator', 'Marksman', 'Rifleman', 'Rifleman', 'Rifleman'],
     summary: '1 Section Cmdr · 1 Radio · 1 Marksman · 3 Riflemen',
   },
-  'CORDON & SEARCH': {
-    label: 'Cordon & Search (CI/CT)',
-    size: 5,
+  'ALPHA // 01': {
+    label: 'ALPHA // 01',
+    code: 'BP-01',
+    roles: ['Team Leader', 'Driver', 'Rifleman', 'Rifleman', 'Rifleman'],
+    summary: '1 Team Leader · 1 Driver · 3 Riflemen',
+  },
+  'ALPHA // 02': {
+    label: 'ALPHA // 02',
+    code: 'QRT-02',
+    roles: ['Team Leader', 'Driver', 'LMG Support', 'Rifleman'],
+    summary: '1 Team Leader · 1 Driver · 1 LMG · 1 Rifleman',
+  },
+  'BRAVO // 04': {
+    label: 'BRAVO // 04',
     code: 'CS-04',
-    tone: 'COUNTER-INSURGENCY',
     roles: ['Mission Leader', 'Pointman / Scout', 'Combat Medic', 'Rifleman', 'Rifleman'],
     summary: '1 Mission Leader · 1 Scout · 1 Medic · 2 Riflemen',
   },
-  'CONVOY ESCORT': {
-    label: 'Convoy Escort',
-    size: 4,
+  'CHARLIE // 05': {
+    label: 'CHARLIE // 05',
     code: 'CE-05',
-    tone: 'MOVEMENT SECURITY',
     roles: ['Convoy Commander', 'Driver', 'Driver', 'Gunner'],
     summary: '1 Convoy Cmdr · 2 Drivers · 1 Gunner',
   },
 }
 
 function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => void; dispatched: string[] }) {
-  const [formation, setFormation] = useState('BORDER PATROL')
+  const [formationKey, setFormationKey] = useState('ALPHA // 03')
   const sorted = useMemo(() => [...tableA].sort((a, b) => b.ors - a.ors), [])
-  const skeleton = missionSkeletons[formation] ?? missionSkeletons['BORDER PATROL']
+  const skeleton = missionSkeletons[formationKey] ?? missionSkeletons['ALPHA // 03']
 
   const squadAssignments = useMemo(() => {
     const picked: { soldierId: string; role: string }[] = []
@@ -274,7 +266,7 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
       }
     })
     return picked
-  }, [formation, sorted, skeleton.roles])
+  }, [formationKey, sorted, skeleton.roles])
 
   const selectedIds = squadAssignments.map(a => a.soldierId)
 
@@ -284,7 +276,7 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
         <div>
           <div className="eyebrow">COMMANDER / COMPANY 04</div>
           <h1>Command deck</h1>
-          <p>Table A access is company-scoped. Select mission formation to evaluate unit readiness.</p>
+          <p>Table A access is company scoped. Select mission formation to evaluate unit readiness.</p>
         </div>
         <StatusPill tone={dispatched.length ? 'good' : 'neutral'}>
           {dispatched.length ? `${dispatched.length} dispatched` : 'Formation ready'}
@@ -326,25 +318,28 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
           </div>
         </Panel>
 
-        <Panel className="formation-panel" eyebrow="MISSION FORMATIONS" title="Select Squad Type">
-          <div className="formation-list">
-            {Object.entries(missionSkeletons).map(([key, skel]) => (
-              <button
-                key={key}
-                className={formation === key ? 'active' : ''}
-                onClick={() => setFormation(key)}
+        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className="icon-btn" aria-label="More options"><MoreHorizontal size={16} /></button>}>
+          <div className="formation-select-container">
+            <div className="eyebrow">FORMATION SKELETON</div>
+            <div className="tactical-select-wrapper">
+              <select
+                value={formationKey}
+                onChange={e => setFormationKey(e.target.value)}
+                className="tactical-select"
               >
-                <span>
-                  <strong>{skel.label}</strong>
-                  <small>{skel.summary}</small>
-                </span>
-                <span className="formation-count">{String(skel.size).padStart(2, '0')}</span>
-              </button>
-            ))}
+                {Object.entries(missionSkeletons).map(([key, skel]) => (
+                  <option key={key} value={key}>
+                    {skel.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={18} className="select-arrow" />
+            </div>
+            <div className="subtext-stamp">Last saved 06 SEP · 18:40 Z</div>
           </div>
 
           <div className="formation-preview">
-            <div className="eyebrow">{skeleton.code} / {skeleton.tone} SQUAD PREVIEW</div>
+            <div className="eyebrow-sub">{skeleton.code} / MATCHED SQUAD PREVIEW</div>
             {squadAssignments.map(({ soldierId, role }) => {
               const s = soldiers.find(x => x.id === soldierId)!
               return (
@@ -357,14 +352,16 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
             })}
           </div>
 
-          <button className="button full primary" onClick={() => dispatch(selectedIds)}>
-            <Crosshair size={15} /> DISPATCH {skeleton.code} SQUAD
-          </button>
-          {dispatched.length > 0 && (
-            <small className="dispatch-note">
-              <Check size={13} /> Active squad transferred to Roster & Soldier View.
-            </small>
-          )}
+          <div className="formation-action-footer">
+            <button className="button full primary" onClick={() => dispatch(selectedIds)}>
+              <Crosshair size={15} /> DISPATCH {skeleton.code} SQUAD
+            </button>
+            {dispatched.length > 0 && (
+              <small className="dispatch-note">
+                <Check size={13} /> Active squad transferred to Roster &amp; Soldier View.
+              </small>
+            )}
+          </div>
         </Panel>
       </div>
     </>
