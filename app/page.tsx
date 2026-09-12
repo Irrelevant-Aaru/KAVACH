@@ -171,7 +171,7 @@ function Header({ role, onMenu, day, setDay }: { role: Role; onMenu: () => void;
         <button className="mobile-menu" onClick={onMenu} aria-label="Open navigation"><Menu size={20} /></button>
         <div className="brand">
           <div className="brand-mark"><Crosshair size={19} /></div>
-          <div><strong>FIELD//OS</strong><span>decision support network</span></div>
+          <div><strong>KAVACH</strong><span>decision support network</span></div>
         </div>
         <div className="top-context">
           <span className="live"><span />LIVE NETWORK</span>
@@ -465,7 +465,7 @@ function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: strin
         </Panel>
 
         {/* RIGHT PANEL: MISSION FORMATION & SQUAD PREVIEW */}
-        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className="icon-btn" aria-label="More options"><MoreHorizontal size={16} /></button>}>
+        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className="button primary small-button" onClick={() => dispatch(selectedIds)} disabled={!selectedIds.length} title="Send the matched squad to Roster Operations for verification"><Crosshair size={14} /> DISPATCH SQUAD</button>}>
           <div className="formation-select-container">
             <div className="eyebrow">FORMATION SKELETON</div>
             <div className="tactical-select-wrapper">
