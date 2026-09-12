@@ -92,6 +92,11 @@ const tableA: TableARow[] = soldiers.map((soldier, index) => ({
   endTime: '—',
 }))
 
+const getClockStamp = (day: number) => {
+  const date = new Date(2026, 8, 7 + day)
+  return `${date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase()} · 14:32 Z`
+}
+
 const roleMeta: Record<Role, { code: string; label: string; icon: typeof Target }> = {
   Commander: { code: 'CMD-01', label: 'Command deck', icon: Target },
   'NCO / Roster': { code: 'NCO-04', label: 'Roster operations', icon: ClipboardCheck },
@@ -258,7 +263,7 @@ const missionSkeletons: Record<string, { label: string; code: string; roles: str
   },
 }
 
-function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => void; dispatched: string[] }) {
+function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: string[]) => void; dispatched: string[]; tableA: TableARow[] }) {
   const [formationKey, setFormationKey] = useState('AREA PATROL // AP-01')
   const [overrides, setOverrides] = useState<Record<number, string>>({})
   const [swappingSlot, setSwappingSlot] = useState<{ slotIndex: number; role: string } | null>(null)
@@ -360,9 +365,9 @@ function CommanderView({ dispatch, dispatched }: { dispatch: (ids: string[]) => 
       </div>
 
       <div className="kpi-grid">
-        <Kpi label="Company strength" value="42 / 48" detail="6 unavailable" icon={Users} />
-        <Kpi label="Avg ORS" value="84.6" detail="Operational readiness" tone="good" icon={Activity} />
-        <Kpi label="On duty" value={`${dispatched.length}`} detail="Current dispatch" tone="warn" icon={Crosshair} />
+  <Kpi label="Company strength" value={`${tableA.filter(row => row.status === 'Available').length} / ${tableA.length}`} detail={`${tableA.filter(row => row.status !== 'Available').length} unavailable`} icon={Users} />
+  <Kpi label="ORS ≥ 90" value={`${tableA.filter(row => row.ors >= 90).length}`} detail="Ready personnel" tone="good" icon={Activity} />
+  <Kpi label="On duty" value={`${dispatched.length}`} detail={`${dispatched.length ? 'Current dispatch' : 'No active dispatch'}`} tone="warn" icon={Crosshair} />
         <Kpi label="Model signal" value="STABLE" detail="Last run 02:00 Z" icon={Zap} />
       </div>
 
@@ -831,7 +836,7 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => setDispatched(ids), dispatched } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : {}) as never} />
+        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => setDispatched(ids), dispatched, tableA } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : {}) as never} />
       </div>
       <div className="scanline" />
     </main>
