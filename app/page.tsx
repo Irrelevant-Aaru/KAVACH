@@ -634,16 +634,14 @@ function NcoView({ dispatched, checkedIn, checkIn, tableB, markReturn, day }: { 
 
 function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: string[]; checkedIn: string[]; tableB: TableBRow[]; day: number }) {
   const active = dispatched.map(id => soldiers.find(s => s.id === id)).filter((s): s is Soldier => Boolean(s))
-  const [logs, setLogs] = useState<Record<string, boolean>>({})
-  const [sleep, setSleep] = useState<Record<string, string>>({})
-  const [meals, setMeals] = useState<Record<string, string>>({})
+const [logs, setLogs] = useState<Record<string, { sleep: string; meals: number }>>({})
 
   if (!active.length) {
     return (
       <>
         <div className="page-title">
           <div>
-            <div className="eyebrow">SOLDIER / PRIVATE VIEWS</div>
+<div className="eyebrow">SOLDIER / VERIFIED PRIVATE VIEWS</div>
             <h1>Soldier view</h1>
             <p>Profiles are created only when the commander dispatches a soldier.</p>
           </div>
@@ -680,19 +678,27 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
                   <small>{isChecked ? `Duty started ${row?.startTime}` : 'Waiting for roster confirmation'}</small>
                 </div>
               </div>
-              <div className="field-grid">
-                <label>
-                  Sleep hours
-                  <input type="number" min="0" max="24" value={sleep[s.id] ?? ''} onChange={e => setSleep({ ...sleep, [s.id]: e.target.value })} placeholder="0–24" />
-                </label>
-                <label>
-                  Meals while on duty
-                  <input type="number" min="0" max="10" value={meals[s.id] ?? ''} onChange={e => setMeals({ ...meals, [s.id]: e.target.value })} placeholder="0–10" />
-                </label>
-              </div>
-              <button className={`button full ${logs[s.id] ? 'success' : 'primary'}`} onClick={() => setLogs({ ...logs, [s.id]: true })}>
-                {logs[s.id] ? <><Check size={15} /> Daily log saved to Table B</> : <>Submit daily log</>}
-              </button>
+<div className="soldier-log-grid">
+  <label className="sleep-input-card">
+  <span className="input-label">REST LOG / HOURS SLEPT</span>
+  <input type="number" min="0" max="24" value={logs[s.id]?.sleep ?? ''} onChange={e => setLogs({ ...logs, [s.id]: { sleep: e.target.value, meals: logs[s.id]?.meals ?? 0 } })} placeholder="00" />
+  <small>Enter sleep hours for the current duty cycle.</small>
+  </label>
+  <div className="meal-action-card">
+  <span className="input-label">MEALS WHILE ON DUTY</span>
+  <strong>{logs[s.id]?.meals ?? 0}</strong>
+  <button className="button primary meal-button" onClick={() => setLogs({ ...logs, [s.id]: { sleep: logs[s.id]?.sleep ?? '', meals: (logs[s.id]?.meals ?? 0) + 1 } })} disabled={!isChecked}>
+  <CheckCircle2 size={15} /> MEAL TAKEN
+  </button>
+  <small>{isChecked ? 'Tap once after each completed meal.' : 'Available after roster verification.'}</small>
+  </div>
+  </div>
+  <button className="button ghost save-log-button" onClick={() => setLogs({ ...logs, [s.id]: { sleep: logs[s.id]?.sleep ?? '', meals: logs[s.id]?.meals ?? 0 } })} disabled={!isChecked}>
+  <ClipboardCheck size={14} /> SAVE DAILY LOG
+  </button>
+<button className={`button full ${logs[s.id] ? 'success' : 'primary'}`} onClick={() => setLogs({ ...logs, [s.id]: { sleep: logs[s.id]?.sleep ?? '', meals: logs[s.id]?.meals ?? 0 } })} disabled={!isChecked}>
+  {logs[s.id] ? <><Check size={15} /> Daily log saved to Table B</> : <>Submit daily log</>}
+  </button>
             </Panel>
           )
         })}
