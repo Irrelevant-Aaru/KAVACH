@@ -161,8 +161,17 @@ function Person({ soldier }: { soldier: Soldier }) {
   )
 }
 
+const accountMeta: Record<Role, { name: string; post: string }> = {
+  Commander: { name: 'CAPT. KIM', post: 'ASSISTANT COMMANDANT' },
+  'NCO / Roster': { name: 'HAV. SINGH', post: 'NCO' },
+  Soldier: { name: '—', post: 'SOLDIER' },
+  'Leave Authority': { name: 'COL. SHARMA', post: 'COMMANDANT' },
+  'Medical Team': { name: 'MEDICAL TEAM', post: '' },
+}
+
 function Header({ role, onMenu, day, setDay }: { role: Role; onMenu: () => void; day: number; setDay: (d: number) => void }) {
   const meta = roleMeta[role]
+  const account = accountMeta[role]
   const date = new Date(2026, 8, 7 + day)
   const stamp = `${date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} · 14:32 Z`
   return (
@@ -184,7 +193,7 @@ function Header({ role, onMenu, day, setDay }: { role: Role; onMenu: () => void;
           <button className="icon-btn" aria-label="Refresh"><RefreshCw size={16} /></button>
           <div className="profile">
             <div className="avatar">AK</div>
-            <div><strong>CAPT. KIM</strong><span>{meta.code}</span></div>
+            <div><strong>{account.name}</strong><span>{account.post || meta.code}</span></div>
           </div>
         </div>
       </header>
@@ -693,9 +702,13 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
   )
 }
 
-function LeaveView() {
+function LeaveView({ tableA, onDecision }: { tableA: TableARow[]; onDecision: (soldierId: string, decision: 'Approved' | 'Rejected') => void }) {
   const [decisions, setDecisions] = useState<Record<string, string>>({})
   const requests = tableA.slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: s.lpi, soldier: s }))
+  const pendingCount = requests.filter(r => !decisions[r.id]).length
+  const approvedCount = Object.values(decisions).filter(value => value === 'Approved').length
+  const quotaTotal = 12
+  const quotaUsed = 8 + approvedCount
   return (
     <>
       <div className="page-title">
@@ -706,14 +719,14 @@ function LeaveView() {
         </div>
         <div className="quota">
           <span>MONTHLY QUOTA</span>
-          <strong>08 <small>/ 12</small></strong>
+          <strong>{quotaUsed} <small>/ {quotaTotal}</small></strong>
         </div>
       </div>
       <div className="kpi-grid">
-        <Kpi label="Pending applications" value="07" detail="3 high priority" tone="warn" icon={Users} />
-        <Kpi label="Quota remaining" value="04" detail="September cycle" icon={ShieldCheck} />
-        <Kpi label="Approved this cycle" value="08" detail="Last approved 05 SEP" tone="good" icon={CheckCircle2} />
-        <Kpi label="Review SLA" value="18h" detail="Oldest request LV-104" icon={Clock3} />
+        <Kpi label="Pending applications" value={String(pendingCount)} detail={`${pendingCount} awaiting decision`} tone="warn" icon={Users} />
+        <Kpi label="Quota remaining" value={String(Math.max(0, quotaTotal - quotaUsed))} detail="September cycle" icon={ShieldCheck} />
+        <Kpi label="Approved this cycle" value={String(quotaUsed)} detail="Last approved 05 SEP" tone="good" icon={CheckCircle2} />
+        <Kpi label="Screen last opened" value="NOW" detail="Live review session" icon={Clock3} />
       </div>
       <Panel eyebrow="TABLE A / LEAVE FIELDS ONLY" title="Pending applications">
         <div className="table-wrap">
@@ -739,8 +752,8 @@ function LeaveView() {
                       <StatusPill tone={decisions[r.id] === 'Approved' ? 'good' : 'danger'}>{decisions[r.id]}</StatusPill>
                     ) : (
                       <div className="decision-actions">
-                        <button className="button success small-button" onClick={() => setDecisions({ ...decisions, [r.id]: 'Approved' })}>Approve</button>
-                        <button className="button danger small-button" onClick={() => setDecisions({ ...decisions, [r.id]: 'Rejected' })}>Reject</button>
+                        <button className="button success small-button" onClick={() => { setDecisions({ ...decisions, [r.id]: 'Approved' }); onDecision(r.soldier.id, 'Approved') }}>Approve</button>
+                        <button className="button danger small-button" onClick={() => { setDecisions({ ...decisions, [r.id]: 'Rejected' }); onDecision(r.soldier.id, 'Rejected') }}>Reject</button>
                       </div>
                     )}
                   </td>
@@ -811,8 +824,14 @@ export default function Page() {
   const [dispatched, setDispatched] = useState<string[]>([])
   const [checkedIn, setCheckedIn] = useState<string[]>([])
   const [tableB, setTableB] = useState<TableBRow[]>([])
+  const [tableARows, setTableARows] = useState<TableARow[]>(tableA)
 
   const nowLabel = `07 SEP 2026 · 14:32 Z +${day}D`
+  const handleLeaveDecision = (soldierId: string, decision: 'Approved' | 'Rejected') => {
+    setTableARows(rows => rows.map(row => row.id === soldierId
+      ? { ...row, status: decision === 'Approved' ? 'Unavailable' : row.status, reason: decision === 'Approved' ? 'Leave approved' : row.reason }
+      : row))
+  }
   const checkIn = (id: string) => {
     if (checkedIn.includes(id)) return
     const soldier = soldiers.find(s => s.id === id)!
@@ -836,7 +855,7 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => setDispatched(ids), dispatched, tableA } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : {}) as never} />
+        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => setDispatched(ids), dispatched, tableA: tableARows } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
       </div>
       <div className="scanline" />
     </main>
