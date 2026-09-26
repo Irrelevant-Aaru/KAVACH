@@ -475,7 +475,7 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
         </Panel>
 
         {/* RIGHT PANEL: MISSION FORMATION & SQUAD PREVIEW */}
-        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className="button primary formation-review-button" onClick={() => setShowDispatchReview(true)} disabled={!selectedIds.length} title="Review and dispatch the matched squad"><Crosshair size={16} /> REVIEW &amp; DISPATCH</button>}>
+        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className={`button ${selectedIds.length > 0 && selectedIds.every(id => dispatched.includes(id)) ? 'success' : 'primary'} formation-review-button`} onClick={() => setShowDispatchReview(true)} disabled={!selectedIds.length || selectedIds.every(id => dispatched.includes(id))} title="Review and dispatch the matched squad">{selectedIds.length > 0 && selectedIds.every(id => dispatched.includes(id)) ? <><Check size={16} /> SELECTED SQUAD DISPATCHED</> : <><Crosshair size={16} /> REVIEW &amp; DISPATCH</>}</button>}>
           <div className="formation-select-container">
             <div className="eyebrow">FORMATION SKELETON</div>
             <div className="tactical-select-wrapper">
@@ -584,6 +584,10 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
                   <button className="icon-btn" onClick={() => setShowDispatchReview(false)} aria-label="Close dispatch review"><X size={16} /></button>
                 </div>
                 <p className="modal-copy">The selected personnel will appear in Roster Operations for NCO verification.</p>
+                <div className="dispatch-mission-summary">
+                  <div><span>FORMATION</span><strong>{skeleton.label}</strong></div>
+                  <div><span>SKELETON</span><strong>{skeleton.summary}</strong></div>
+                </div>
                 <div className="dispatch-review-list">
                   {squadAssignments.map(assignment => {
                     const soldier = liveTableA.find(row => row.id === assignment.soldierId)
@@ -878,7 +882,7 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => setDispatched(ids), dispatched, tableA: tableARows, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
+        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => { setDispatched(ids); setTableARows(rows => rows.map(row => ids.includes(row.id) ? { ...row, status: 'Unavailable', reason: 'Dispatched · awaiting NCO verification' } : row)) }, dispatched, tableA: tableARows, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
       </div>
       <div className="scanline" />
     </main>
