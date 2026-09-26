@@ -92,9 +92,10 @@ const tableA: TableARow[] = soldiers.map((soldier, index) => ({
   endTime: '—',
 }))
 
-const getClockStamp = (day: number) => {
-  const date = new Date(2026, 8, 7 + day)
-  return `${date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase()} · 14:32 Z`
+const getClockStamp = (hour: number) => {
+  const date = new Date(2026, 6, 27, 10, 30)
+  date.setHours(date.getHours() + hour)
+  return `${date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase()} · ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })} Z`
 }
 
 const roleMeta: Record<Role, { code: string; label: string; icon: typeof Target }> = {
@@ -172,15 +173,16 @@ const accountMeta: Record<Role, { name: string; post: string }> = {
 function Header({ role, onMenu, day, setDay }: { role: Role; onMenu: () => void; day: number; setDay: (d: number) => void }) {
   const meta = roleMeta[role]
   const account = accountMeta[role]
-  const date = new Date(2026, 8, 7 + day)
-  const stamp = `${date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} · 14:32 Z`
+  const date = new Date(2026, 6, 27, 10, 30)
+  date.setHours(date.getHours() + day)
+  const stamp = `${date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()} · ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })} Z`
   return (
     <>
       <header className="topbar">
         <button className="mobile-menu" onClick={onMenu} aria-label="Open navigation"><Menu size={20} /></button>
         <div className="brand">
           <div className="brand-mark"><Crosshair size={19} /></div>
-          <div><strong>KAVACH</strong><span>decision support network</span></div>
+          <div><strong>KAVACH</strong><span>decision support system</span></div>
         </div>
         <div className="top-context">
           <span className="live"><span />LIVE NETWORK</span>
@@ -200,10 +202,10 @@ function Header({ role, onMenu, day, setDay }: { role: Role; onMenu: () => void;
       <div className="timebar">
         <div><Clock3 size={15} /><strong>SIMULATED OPERATING TIME</strong><span>{stamp}</span></div>
         <button onClick={() => setDay(0)} className={day === 0 ? 'active' : ''}>NOW</button>
-        <button onClick={() => setDay(Math.max(0, day - 1))}>− 1D</button>
-        <input aria-label="Scroll simulated date" type="range" min="0" max="3" value={day} onChange={e => setDay(Number(e.target.value))} />
-        <button onClick={() => setDay(Math.min(3, day + 1))}>+ 1D</button>
-        <span className="time-limit">T+{day} DAYS</span>
+        <button onClick={() => setDay(Math.max(0, day - 1))}>− 1H</button>
+        <input aria-label="Scroll simulated operating time" type="range" min="0" max="168" step="1" value={day} onChange={e => setDay(Number(e.target.value))} />
+        <button onClick={() => setDay(Math.min(168, day + 1))}>+ 1H</button>
+        <span className="time-limit">T+{Math.floor(day / 24)}D {day % 24}H</span>
       </div>
     </>
   )
@@ -228,7 +230,7 @@ function Sidebar({ role, setRole, open, close }: { role: Role; setRole: (r: Role
         <LockKeyhole size={16} />
         <div><strong>SECURE CHANNEL</strong><span>All events audited</span></div>
       </div>
-      <div className="build">FIELD//OS v0.9.0<br /><span>PROTOTYPE / SIMULATION</span></div>
+      <div className="build">KAVACH v0.9.0<br /><span>PROTOTYPE / SIMULATION</span></div>
     </aside>
   )
 }
@@ -591,7 +593,7 @@ function NcoView({ dispatched, checkedIn, checkIn, tableB, markReturn, day }: { 
           <h1>Duty control</h1>
           <p>Only commander-dispatched personnel appear here. Check-in creates a Table B row.</p>
         </div>
-        <StatusPill tone="good">Clock synchronized · T+{day}d</StatusPill>
+        <StatusPill tone="good">Clock synchronized · T+{Math.floor(day / 24)}d {day % 24}h</StatusPill>
       </div>
       <div className="kpi-grid">
         <Kpi label="Dispatched squad" value={`${active.length}`} detail="Commander handoff" tone="warn" icon={Clock3} />
@@ -697,7 +699,7 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
           )
         })}
       </div>
-      <small className="dispatch-note">The unified clock is T+{day}d. NCO return stamps set each Table B end time from this clock.</small>
+      <small className="dispatch-note">The unified clock is T+{Math.floor(day / 24)}d {day % 24}h. NCO return stamps set each Table B end time from this clock.</small>
     </>
   )
 }

@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'FIELD//OS — Decision Support Network',
+  title: 'KAVACH  Decision Support System',
   description: 'Secure, role-scoped operational decision support prototype for distributed field teams.',
   generator: 'v0.app',
 }
