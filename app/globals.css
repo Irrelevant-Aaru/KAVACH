@@ -162,6 +162,17 @@ button { cursor: pointer; }
   .commander-main .roster-panel .table-wrap { max-height: calc(100vh - 360px); overflow-y: auto; overscroll-behavior: contain; scrollbar-color: #68754a #111614; }
   .commander-main .formation-panel { margin-top: 0; max-height: calc(100vh - 360px); overflow-y: auto; }
 }
+@media (min-width: 1051px) {
+  /* Keep metrics over Table A while the formation block rises into the freed column space. */
+.commander-main > .kpi-grid { width: calc((100% - 18px) * 1.35 / 2.35); grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .commander-grid { align-items: start; }
+  .commander-main > .kpi-grid .kpi { min-width: 0; }
+  .commander-grid .formation-panel { margin-top: -94px; }
+  .commander-grid .roster-panel { min-width: 0; }
+  .commander-grid .roster-panel .table-wrap { max-height: calc(100vh - 302px); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+  .commander-grid .roster-panel .table-wrap table { min-width: 620px; }
+}
+
 @media (max-width: 1050px) {
   .commander-main .formation-panel { margin-top: 0; }
 }
