@@ -71,7 +71,7 @@ const badgeCycle = [
 const soldiers: Soldier[] = soldierNames.map((name, index) => {
   const initials = name.split(' ').map(part => part[0]).join('')
   const badges = badgeCycle[index % badgeCycle.length]
-  const readiness = Math.max(61, 98 - ((index * 7) % 35))
+  const readiness = 33 + ((index * 17 + index * index * 3) % 68)
   return {
     id: `A-${String(index + 1).padStart(3, '0')}`,
     name,
@@ -79,8 +79,8 @@ const soldiers: Soldier[] = soldierNames.map((name, index) => {
     rank: index % 5 === 0 ? 'SGT' : index % 3 === 0 ? 'CPL' : 'RFL',
     badges,
     readiness,
-    status: index % 13 === 0 ? 'Unavailable' : 'Available',
-    reason: index % 13 === 0 ? 'Recovery window · 18h' : 'Ready for assignment',
+    status: 'Available',
+    reason: 'Ready for assignment',
   }
 })
 
@@ -91,6 +91,8 @@ const tableA: TableARow[] = soldiers.map((soldier, index) => ({
   startTime: '—',
   endTime: '—',
 }))
+
+const getEffectiveOrs = (initialOrs: number, hours: number) => Math.min(100, Math.round(100 - (100 - initialOrs) * Math.exp(-0.0123 * hours)))
 
 const getClockStamp = (hour: number) => {
   const date = new Date(2026, 6, 27, 10, 30)
@@ -274,13 +276,15 @@ const missionSkeletons: Record<string, { label: string; code: string; roles: str
   },
 }
 
-function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: string[]) => void; dispatched: string[]; tableA: TableARow[] }) {
+function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: string[]) => void; dispatched: string[]; tableA: TableARow[]; day: number }) {
   const [formationKey, setFormationKey] = useState('AREA PATROL // AP-01')
+  const [showDispatchReview, setShowDispatchReview] = useState(false)
   const [overrides, setOverrides] = useState<Record<number, string>>({})
   const [swappingSlot, setSwappingSlot] = useState<{ slotIndex: number; role: string } | null>(null)
   const [customSlots, setCustomSlots] = useState<string[]>(['Rifleman', 'Rifleman', 'Rifleman', 'Rifleman'])
 
   const skeleton = missionSkeletons[formationKey] ?? missionSkeletons['AREA PATROL // AP-01']
+  const liveTableA = useMemo(() => tableA.map(row => ({ ...row, ors: getEffectiveOrs(row.ors, day) })), [tableA, day])
 
   const handleFormationChange = (key: string) => {
     setFormationKey(key)
@@ -292,7 +296,7 @@ function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: strin
 
   // Dynamic sorting for Left Table A based on active Swap Mode
   const sortedTableA = useMemo(() => {
-    const baseList = [...tableA]
+    const baseList = [...liveTableA]
     if (!swappingSlot) {
       return baseList.sort((a, b) => b.ors - a.ors)
     }
@@ -313,7 +317,7 @@ function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: strin
       // Sorted by Readiness / ORS descending
       return b.ors - a.ors
     })
-  }, [swappingSlot])
+  }, [swappingSlot, liveTableA])
 
   // Squad assignments calculation
   const squadAssignments = useMemo(() => {
@@ -376,10 +380,9 @@ function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: strin
       </div>
 
       <div className="kpi-grid">
-  <Kpi label="Company strength" value={`${tableA.filter(row => row.status === 'Available').length} / ${tableA.length}`} detail={`${tableA.filter(row => row.status !== 'Available').length} unavailable`} icon={Users} />
-  <Kpi label="ORS ≥ 90" value={`${tableA.filter(row => row.ors >= 90).length}`} detail="Ready personnel" tone="good" icon={Activity} />
+  <Kpi label="Company strength" value={`${liveTableA.filter(row => row.status === 'Available').length} / ${liveTableA.length}`} detail={`${liveTableA.filter(row => row.status !== 'Available').length} unavailable`} icon={Users} />
+  <Kpi label="ORS ≥ 90" value={`${liveTableA.filter(row => row.ors >= 90).length}`} detail="Ready personnel" tone="good" icon={Activity} />
   <Kpi label="On duty" value={`${dispatched.length}`} detail={`${dispatched.length ? 'Current dispatch' : 'No active dispatch'}`} tone="warn" icon={Crosshair} />
-        <Kpi label="Model signal" value="STABLE" detail="Last run 02:00 Z" icon={Zap} />
       </div>
 
       <div className="content-grid commander-grid">
@@ -417,7 +420,7 @@ function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: strin
                   <th>Status</th>
                   <th>ORS</th>
                   <th>Badges</th>
-                  <th>{swappingSlot ? 'Action' : 'Duty window'}</th>
+                  {swappingSlot && <th>Action</th>}
                 </tr>
               </thead>
               <tbody>
@@ -452,21 +455,17 @@ function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: strin
                           ))}
                         </div>
                       </td>
-                      <td>
-                        {swappingSlot ? (
-                          <button
-                            disabled={!isAvailable}
-                            className={`button small-button ${hasMatchingBadge ? 'success' : 'primary'}`}
-                            onClick={() => handleSelectReplacement(s.id)}
-                            style={{ padding: '4px 10px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
-                          >
-                            <UserCheck size={13} style={{ marginRight: '4px' }} />
-                            Select
-                          </button>
-                        ) : (
-                          `${s.startTime} — ${s.endTime}`
-                        )}
-                      </td>
+                      {swappingSlot && <td>
+                        <button
+                          disabled={!isAvailable}
+                          className={`button small-button ${hasMatchingBadge ? 'success' : 'primary'}`}
+                          onClick={() => handleSelectReplacement(s.id)}
+                          style={{ padding: '4px 10px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                        >
+                          <UserCheck size={13} style={{ marginRight: '4px' }} />
+                          Select
+                        </button>
+                      </td>}
                     </tr>
                   )
                 })}
@@ -476,7 +475,7 @@ function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: strin
         </Panel>
 
         {/* RIGHT PANEL: MISSION FORMATION & SQUAD PREVIEW */}
-        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className="button primary small-button" onClick={() => dispatch(selectedIds)} disabled={!selectedIds.length} title="Send the matched squad to Roster Operations for verification"><Crosshair size={14} /> DISPATCH SQUAD</button>}>
+        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className="button primary formation-review-button" onClick={() => setShowDispatchReview(true)} disabled={!selectedIds.length} title="Review and dispatch the matched squad"><Crosshair size={16} /> REVIEW &amp; DISPATCH</button>}>
           <div className="formation-select-container">
             <div className="eyebrow">FORMATION SKELETON</div>
             <div className="tactical-select-wrapper">
@@ -539,7 +538,7 @@ function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: strin
                       <span className="badge-list" style={{ margin: 0 }}>
                         <span style={{ fontSize: '0.7rem', padding: '2px 6px' }}>{role}</span>
                       </span>
-                      <Readiness value={s.readiness} />
+                      <Readiness value={s.ors} />
 
                       {/* SWAP BUTTON */}
                       <button
@@ -568,15 +567,37 @@ function CommanderView({ dispatch, dispatched, tableA }: { dispatch: (ids: strin
           </div>
 
           <div className="formation-action-footer">
-            <button className="button full primary" onClick={() => dispatch(selectedIds)}>
-              <Crosshair size={15} /> DISPATCH {skeleton.code} SQUAD
-            </button>
             {dispatched.length > 0 && (
               <small className="dispatch-note">
                 <Check size={13} /> Active squad transferred to Roster &amp; Soldier View.
               </small>
             )}
           </div>
+          {showDispatchReview && (
+            <div className="modal-backdrop" role="presentation" onClick={() => setShowDispatchReview(false)}>
+              <div className="dispatch-modal" role="dialog" aria-modal="true" aria-labelledby="dispatch-review-title" onClick={event => event.stopPropagation()}>
+                <div className="modal-head">
+                  <div>
+                    <div className="eyebrow">MISSION HANDOFF / {skeleton.code}</div>
+                    <h3 id="dispatch-review-title">Review squad before dispatch</h3>
+                  </div>
+                  <button className="icon-btn" onClick={() => setShowDispatchReview(false)} aria-label="Close dispatch review"><X size={16} /></button>
+                </div>
+                <p className="modal-copy">The selected personnel will appear in Roster Operations for NCO verification.</p>
+                <div className="dispatch-review-list">
+                  {squadAssignments.map(assignment => {
+                    const soldier = liveTableA.find(row => row.id === assignment.soldierId)
+                    if (!soldier) return null
+                    return <div className="dispatch-review-row" key={`${assignment.slotIndex}-${soldier.id}`}><Person soldier={soldier} /><span className="role-chip">{assignment.role}</span><Readiness value={soldier.ors} /></div>
+                  })}
+                </div>
+                <div className="modal-actions">
+                  <button className="button ghost" onClick={() => setShowDispatchReview(false)}>CANCEL</button>
+                  <button className="button primary" onClick={() => { dispatch(selectedIds); setShowDispatchReview(false) }}><Crosshair size={15} /> CONFIRM DISPATCH</button>
+                </div>
+              </div>
+            </div>
+          )}
         </Panel>
       </div>
     </>
@@ -857,7 +878,7 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => setDispatched(ids), dispatched, tableA: tableARows } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
+        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => setDispatched(ids), dispatched, tableA: tableARows, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
       </div>
       <div className="scanline" />
     </main>
