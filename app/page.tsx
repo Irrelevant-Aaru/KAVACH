@@ -873,7 +873,7 @@ export default function Page() {
     <main className="app-shell">
       <Header role={role} onMenu={() => setMenuOpen(true)} day={day} setDay={setDay} />
       <Sidebar role={role} setRole={setRole} open={menuOpen} close={() => setMenuOpen(false)} />
-      <div className="main">
+      <div className={`main ${role === 'Commander' ? 'commander-main' : ''}`}>
         <div className="role-switcher">
           <span>PROTOTYPE VIEW</span>
           {Object.keys(roleMeta).map(item => (
@@ -882,7 +882,7 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => { setDispatched(ids); setTableARows(rows => rows.map(row => ids.includes(row.id) ? { ...row, status: 'Unavailable', reason: 'Dispatched · awaiting NCO verification' } : row)) }, dispatched, tableA: tableARows, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
+        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => { setDispatched(previous => Array.from(new Set([...previous, ...ids]))); setTableARows(rows => rows.map(row => ids.includes(row.id) ? { ...row, status: 'Unavailable', reason: 'Dispatched · awaiting NCO verification' } : row)) }, dispatched, tableA: tableARows, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
       </div>
       <div className="scanline" />
     </main>

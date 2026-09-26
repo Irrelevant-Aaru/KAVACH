@@ -149,3 +149,19 @@ button { cursor: pointer; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px 20px; border-top: 1px solid var(--border); }
 @media (max-width: 760px) { .timebar input { width: 180px; }.dispatch-review-row { grid-template-columns: 1fr; gap: 7px; } }
 @media (max-width: 760px) { .timebar { margin-left: 0; padding: 7px 14px; overflow-x: auto; }.timebar > div { min-width: 205px; }.timebar input { width: 100px; }.time-limit { display: none; }.soldier-switcher { grid-template-columns: repeat(2, 1fr); }.main { padding-top: 0; } }
+
+/* Keep the command deck anchored while its personnel table carries the scroll. */
+@media (min-width: 1051px) {
+  .commander-main { height: calc(100vh - 106px); overflow: hidden; padding-bottom: 18px; }
+  .commander-main .role-switcher { flex: 0 0 auto; margin-bottom: 16px; }
+  .commander-main .page-title { margin-bottom: 14px; }
+  .commander-main .kpi-grid { gap: 10px; margin-bottom: 14px; }
+  .commander-main .kpi { min-height: 72px; padding: 12px 14px; }
+  .commander-main .content-grid { min-height: 0; }
+  .commander-main .roster-panel { min-height: 0; }
+  .commander-main .roster-panel .table-wrap { max-height: calc(100vh - 360px); overflow-y: auto; overscroll-behavior: contain; scrollbar-color: #68754a #111614; }
+  .commander-main .formation-panel { margin-top: 0; max-height: calc(100vh - 360px); overflow-y: auto; }
+}
+@media (max-width: 1050px) {
+  .commander-main .formation-panel { margin-top: 0; }
+}
