@@ -375,7 +375,7 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
           <p>Table A access is company scoped. Select mission formation to evaluate unit readiness.</p>
         </div>
         <StatusPill tone={dispatched.length ? 'good' : 'neutral'}>
-          {dispatched.length ? `${dispatched.length} dispatched` : 'Formation ready'}
+          {dispatched.length ? `${dispatched.length} unavailable` : 'Formation ready'}
         </StatusPill>
       </div>
 
@@ -475,7 +475,7 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
         </Panel>
 
         {/* RIGHT PANEL: MISSION FORMATION & SQUAD PREVIEW */}
-        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className={`button ${selectedIds.length > 0 && selectedIds.every(id => dispatched.includes(id)) ? 'success' : 'primary'} formation-review-button`} onClick={() => setShowDispatchReview(true)} disabled={!selectedIds.length || selectedIds.every(id => dispatched.includes(id))} title="Review and dispatch the matched squad">{selectedIds.length > 0 && selectedIds.every(id => dispatched.includes(id)) ? <><Check size={16} /> SELECTED SQUAD DISPATCHED</> : <><Crosshair size={16} /> REVIEW &amp; DISPATCH</>}</button>}>
+        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={              <button className="button primary formation-review-button" onClick={() => setShowDispatchReview(true)} disabled={!selectedIds.length} title="Review and dispatch the matched squad"><Crosshair size={16} /> REVIEW &amp; DISPATCH</button>}>
           <div className="formation-select-container">
             <div className="eyebrow">FORMATION SKELETON</div>
             <div className="tactical-select-wrapper">
@@ -566,13 +566,6 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
             })}
           </div>
 
-          <div className="formation-action-footer">
-            {dispatched.length > 0 && (
-              <small className="dispatch-note">
-                <Check size={13} /> Active squad transferred to Roster &amp; Soldier View.
-              </small>
-            )}
-          </div>
           {showDispatchReview && (
             <div className="modal-backdrop" role="presentation" onClick={() => setShowDispatchReview(false)}>
               <div className="dispatch-modal" role="dialog" aria-modal="true" aria-labelledby="dispatch-review-title" onClick={event => event.stopPropagation()}>
