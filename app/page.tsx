@@ -71,7 +71,7 @@ const badgeCycle = [
 const soldiers: Soldier[] = soldierNames.map((name, index) => {
   const initials = name.split(' ').map(part => part[0]).join('')
   const badges = badgeCycle[index % badgeCycle.length]
-  const readiness = 33 + ((index * 17 + index * index * 3) % 68)
+  const readiness = 33 + ((index * 17 + index * index * 5) % 63)
   return {
     id: `A-${String(index + 1).padStart(3, '0')}`,
     name,
@@ -475,7 +475,7 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
         </Panel>
 
         {/* RIGHT PANEL: MISSION FORMATION & SQUAD PREVIEW */}
-        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className="button primary formation-review-button" onClick={() => setShowDispatchReview(true)} disabled={!selectedIds.length} title="Review and dispatch the matched squad"><Crosshair size={16} /> REVIEW &amp; DISPATCH</button>}>
+        <Panel className="formation-panel" eyebrow="FORMATION BUILDER" title="Mission formation" action={<button className={`button ${dispatched.length ? 'success' : 'primary'} formation-review-button`} onClick={() => setShowDispatchReview(true)} disabled={!selectedIds.length || dispatched.length > 0} title={dispatched.length ? 'Squad dispatched' : 'Review and dispatch the matched squad'}>{dispatched.length ? <><Check size={16} /> SQUAD DISPATCHED</> : <><Crosshair size={16} /> REVIEW &amp; DISPATCH</>}</button>}>
           <div className="formation-select-container">
             <div className="eyebrow">FORMATION SKELETON</div>
             <div className="tactical-select-wrapper">
@@ -584,6 +584,10 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
                   <button className="icon-btn" onClick={() => setShowDispatchReview(false)} aria-label="Close dispatch review"><X size={16} /></button>
                 </div>
                 <p className="modal-copy">The selected personnel will appear in Roster Operations for NCO verification.</p>
+                <div className="dispatch-mission-summary">
+                  <div><span>FORMATION</span><strong>{skeleton.label}</strong></div>
+                  <div><span>SKELETON</span><strong>{skeleton.summary}</strong></div>
+                </div>
                 <div className="dispatch-review-list">
                   {squadAssignments.map(assignment => {
                     const soldier = liveTableA.find(row => row.id === assignment.soldierId)
@@ -862,6 +866,12 @@ export default function Page() {
     setTableB(rows => [...rows, { soldierId: id, name: soldier.name, startTime: nowLabel, endTime: '—' }])
   }
   const markReturn = (id: string) => setTableB(rows => rows.map(row => row.soldierId === id ? { ...row, endTime: nowLabel } : row))
+  const dispatch = (ids: string[]) => {
+    setDispatched(ids)
+    setTableARows(rows => rows.map(row => ids.includes(row.id)
+      ? { ...row, status: 'Unavailable', reason: 'Dispatched · awaiting NCO verification', startTime: nowLabel }
+      : row))
+  }
 
   const View = role === 'Commander' ? CommanderView : role === 'NCO / Roster' ? NcoView : role === 'Soldier' ? SoldierView : role === 'Leave Authority' ? LeaveView : MedicalView
 
@@ -878,7 +888,7 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => setDispatched(ids), dispatched, tableA: tableARows, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
+        <View {...(role === 'Commander' ? { dispatch, dispatched, tableA: tableARows, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
       </div>
       <div className="scanline" />
     </main>
