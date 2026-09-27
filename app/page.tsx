@@ -228,11 +228,23 @@ function Sidebar({ role, setRole, open, close }: { role: Role; setRole: (r: Role
         )
       })}
       <div className="side-spacer" />
-      <div className="secure-box">
-        <LockKeyhole size={16} />
-        <div><strong>SECURE CHANNEL</strong><span>All events audited</span></div>
+      <div className="guild-box">
+        <div className="guild-kicker">DEVELOPED BY</div>
+        <strong>EPOCH GUILD</strong>
       </div>
-      <div className="build">KAVACH v0.9.0<br /><span>PROTOTYPE / SIMULATION</span></div>
+      <div className="architect-box">
+        <div className="guild-kicker">SYSTEM ARCHITECT:</div>
+        <strong>PRIYANSH VERMA <span>[TEAM LEADER]</span></strong>
+        <div className="guild-kicker team-label">TEAM MEMBERS:</div>
+        <ol>
+          <li>VIKAS PRAJAPATI</li>
+          <li>SHIVAM SHARMA</li>
+          <li>SUDHANSHU CHIMANIYA</li>
+          <li>KAJAL RAWAT</li>
+          <li>AASHIKA JAIN</li>
+        </ol>
+      </div>
+      <div className="build">KAVACH<br /><span>PROTOTYPE / SIMULATION</span></div>
     </aside>
   )
 }
