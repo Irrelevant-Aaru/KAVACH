@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowDownUp,
@@ -39,7 +39,7 @@ type Soldier = {
   status: string
   reason: string
 }
-type TableARow = Soldier & { ors: number; lpi: number; startTime: string; endTime: string }
+type TableARow = Soldier & { ors: number; orsUpdatedHour: number; lpi: number; startTime: string; endTime: string }
 type TableBRow = { soldierId: string; name: string; startTime: string; endTime: string; startHour: number; endHour?: number }
 
 const soldierNames = [
@@ -87,6 +87,7 @@ const soldiers: Soldier[] = soldierNames.map((name, index) => {
 const tableA: TableARow[] = soldiers.map((soldier, index) => ({
   ...soldier,
   ors: soldier.readiness,
+  orsUpdatedHour: 0,
   lpi: [94, 88, 76, 71, 62, 54][index] ?? 50,
   startTime: '—',
   endTime: '—',
@@ -297,16 +298,8 @@ function CommanderView({ dispatch, dispatched, tableA, tableB, day }: { dispatch
   const [customSlots, setCustomSlots] = useState<string[]>(['Rifleman', 'Rifleman', 'Rifleman', 'Rifleman'])
 
   const skeleton = missionSkeletons[formationKey] ?? missionSkeletons['AREA PATROL // AP-01']
-  const liveTableA = useMemo(() => tableA.map(row => {
-    const activeDuty = tableB.find(record => record.soldierId === row.id && record.endHour === undefined)
-    if (activeDuty) {
-      return { ...row, ors: getDecayOrs(row.ors, day - activeDuty.startHour) }
-    }
-    if (row.status === 'Available') {
-      return { ...row, ors: getGrowthOrs(row.ors, day) }
-    }
-    return row
-  }), [tableA, tableB, day])
+  const liveTableA = tableA
+
 
   const handleFormationChange = (key: string) => {
     setFormationKey(key)
@@ -759,9 +752,8 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
   )
 }
 
-function LeaveView({ tableA, onDecision }: { tableA: TableARow[]; onDecision: (soldierId: string, decision: 'Approved' | 'Rejected') => void }) {
-  const [decisions, setDecisions] = useState<Record<string, string>>({})
-  const requests = tableA.slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: s.lpi, soldier: s }))
+function LeaveView({ tableA, decisions, setDecision, onDecision }: { tableA: TableARow[]; decisions: Record<string, string>; setDecision: (id: string, decision: 'Approved' | 'Rejected') => void; onDecision: (soldierId: string, decision: 'Approved' | 'Rejected') => void }) {
+  const requests = useMemo(() => tableA.filter(s => s.status === 'Available').sort(() => Math.random() - 0.5).slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: s.lpi, soldier: s })), [tableA])
   const pendingCount = requests.filter(r => !decisions[r.id]).length
   const approvedCount = Object.values(decisions).filter(value => value === 'Approved').length
   const quotaTotal = 12
@@ -809,8 +801,8 @@ function LeaveView({ tableA, onDecision }: { tableA: TableARow[]; onDecision: (s
                       <StatusPill tone={decisions[r.id] === 'Approved' ? 'good' : 'danger'}>{decisions[r.id]}</StatusPill>
                     ) : (
                       <div className="decision-actions">
-                        <button className="button success small-button" onClick={() => { setDecisions({ ...decisions, [r.id]: 'Approved' }); onDecision(r.soldier.id, 'Approved') }}>Approve</button>
-                        <button className="button danger small-button" onClick={() => { setDecisions({ ...decisions, [r.id]: 'Rejected' }); onDecision(r.soldier.id, 'Rejected') }}>Reject</button>
+                        <button className="button success small-button" onClick={() => { setDecision(r.id, 'Approved'); onDecision(r.soldier.id, 'Approved') }}>Approve</button>
+                        <button className="button danger small-button" onClick={() => { setDecision(r.id, 'Rejected'); onDecision(r.soldier.id, 'Rejected') }}>Reject</button>
                       </div>
                     )}
                   </td>
@@ -882,8 +874,18 @@ export default function Page() {
   const [checkedIn, setCheckedIn] = useState<string[]>([])
   const [tableB, setTableB] = useState<TableBRow[]>([])
   const [tableARows, setTableARows] = useState<TableARow[]>(tableA)
+  const [leaveDecisions, setLeaveDecisions] = useState<Record<string, string>>({})
 
   const nowLabel = getClockStamp(day)
+  useEffect(() => {
+    setTableARows(rows => rows.map(row => {
+      const activeDuty = tableB.find(record => record.soldierId === row.id && record.endHour === undefined)
+      const elapsed = Math.max(0, day - row.orsUpdatedHour)
+      if (!elapsed) return row
+      const nextOrs = activeDuty ? getDecayOrs(row.ors, elapsed) : row.status === 'Available' ? getGrowthOrs(row.ors, elapsed) : row.ors
+      return { ...row, ors: nextOrs, readiness: nextOrs, orsUpdatedHour: day }
+    }))
+  }, [day, tableB])
   const handleLeaveDecision = (soldierId: string, decision: 'Approved' | 'Rejected') => {
     if (decision === 'Approved') {
       setDispatched(previous => previous.filter(id => id !== soldierId))
@@ -927,7 +929,7 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => { setDispatched(previous => Array.from(new Set([...previous, ...ids]))); setTableARows(rows => rows.map(row => ids.includes(row.id) ? { ...row, status: 'Unavailable', reason: 'Dispatched · awaiting NCO verification' } : row)) }, dispatched, tableA: tableARows, tableB, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
+        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => { setDispatched(previous => Array.from(new Set([...previous, ...ids]))); setTableARows(rows => rows.map(row => ids.includes(row.id) ? { ...row, status: 'Unavailable', reason: 'Dispatched · awaiting NCO verification' } : row)) }, dispatched, tableA: tableARows, tableB, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, decisions: leaveDecisions, setDecision: (id: string, decision: string) => setLeaveDecisions(previous => ({ ...previous, [id]: decision })), onDecision: handleLeaveDecision } : {}) as never} />
       </div>
       <div className="scanline" />
     </main>
