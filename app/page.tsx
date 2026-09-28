@@ -88,7 +88,7 @@ const tableA: TableARow[] = soldiers.map((soldier, index) => ({
   ...soldier,
   ors: soldier.readiness,
   orsUpdatedHour: 0,
-  lpi: [94, 88, 76, 71, 62, 54][index] ?? 50,
+  lpi: 42 + ((index * 23 + index * index * 7) % 55),
   startTime: '—',
   endTime: '—',
 }))
@@ -190,9 +190,7 @@ function Header({ role, onMenu, day, setDay }: { role: Role; onMenu: () => void;
         </div>
         <div className="top-context">
           <span className="live"><span />LIVE NETWORK</span>
-          <span className="divider" />
-          <span>FOB NORTHSTAR</span>
-          <span className="divider" />
+  <span className="divider" />
           <span>{stamp}</span>
         </div>
         <div className="top-actions">
@@ -774,7 +772,7 @@ function LeaveView({ tableA, decisions, setDecision, onDecision }: { tableA: Tab
       <div className="kpi-grid">
         <Kpi label="Pending applications" value={String(pendingCount)} detail={`${pendingCount} awaiting decision`} tone="warn" icon={Users} />
         <Kpi label="Quota remaining" value={String(Math.max(0, quotaTotal - quotaUsed))} detail="September cycle" icon={ShieldCheck} />
-        <Kpi label="Approved this cycle" value={String(quotaUsed)} detail="Last approved 05 SEP" tone="good" icon={CheckCircle2} />
+        <Kpi label="Approved this cycle" value={String(quotaUsed)} detail="Last approved 15 JUL" tone="good" icon={CheckCircle2} />
         <Kpi label="Screen last opened" value="NOW" detail="Live review session" icon={Clock3} />
       </div>
       <Panel eyebrow="TABLE A / LEAVE FIELDS ONLY" title="Pending applications">
