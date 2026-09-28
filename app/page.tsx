@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowDownUp,
@@ -39,7 +39,7 @@ type Soldier = {
   status: string
   reason: string
 }
-type TableARow = Soldier & { ors: number; lpi: number; startTime: string; endTime: string }
+type TableARow = Soldier & { ors: number; orsUpdatedHour: number; lpi: number; startTime: string; endTime: string }
 type TableBRow = { soldierId: string; name: string; startTime: string; endTime: string; startHour: number; endHour?: number }
 
 const soldierNames = [
@@ -87,12 +87,14 @@ const soldiers: Soldier[] = soldierNames.map((name, index) => {
 const tableA: TableARow[] = soldiers.map((soldier, index) => ({
   ...soldier,
   ors: soldier.readiness,
-  lpi: [94, 88, 76, 71, 62, 54][index] ?? 50,
+  orsUpdatedHour: 0,
+  lpi: [83, 55, 23][index % 3],
   startTime: '—',
   endTime: '—',
 }))
 
-const getEffectiveOrs = (initialOrs: number, hours: number) => Math.min(100, Math.round(100 - (100 - initialOrs) * Math.exp(-0.0123 * hours)))
+const getGrowthOrs = (initialOrs: number, hours: number) => Math.min(100, Math.round(100 - (100 - initialOrs) * Math.exp(-0.0123 * Math.max(0, hours))))
+const getDecayOrs = (initialOrs: number, hours: number) => Math.max(20, Math.round(initialOrs * Math.exp(-0.0123 * Math.max(0, hours))))
 
 const getClockStamp = (hour: number) => {
   const date = new Date(2026, 6, 27, 10, 30)
@@ -145,11 +147,16 @@ function Kpi({ label, value, detail, tone = '', icon: Icon }: { label: string; v
 function Readiness({ value }: { value: number }) {
   const tone = value >= 85 ? 'good' : value >= 75 ? 'warn' : 'danger'
   return (
-    <div className="readiness">
-      <div className="readiness-bar"><span className={tone} style={{ width: `${value}%` }} /></div>
-      <strong className={tone}>{value}</strong>
-    </div>
+  <div className="readiness">
+  <div className="readiness-bar"><span className={tone} style={{ width: `${value}%` }} /></div>
+  <strong className={tone}>{value}</strong>
+  </div>
   )
+  }
+
+function LpiScore({ value }: { value: number }) {
+  const tone = value <= 30 ? 'good' : value <= 60 ? 'warn' : 'danger'
+  return <div className="readiness"><div className="readiness-bar"><span className={tone} style={{ width: `${value}%` }} /></div><strong className={tone}>{value}</strong></div>
 }
 
 function Person({ soldier }: { soldier: Soldier }) {
@@ -188,9 +195,7 @@ function Header({ role, onMenu, day, setDay }: { role: Role; onMenu: () => void;
         </div>
         <div className="top-context">
           <span className="live"><span />LIVE NETWORK</span>
-          <span className="divider" />
-          <span>FOB NORTHSTAR</span>
-          <span className="divider" />
+  <span className="divider" />
           <span>{stamp}</span>
         </div>
         <div className="top-actions">
@@ -288,7 +293,7 @@ const missionSkeletons: Record<string, { label: string; code: string; roles: str
   },
 }
 
-function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: string[]) => void; dispatched: string[]; tableA: TableARow[]; day: number }) {
+function CommanderView({ dispatch, dispatched, tableA, tableB, day }: { dispatch: (ids: string[]) => void; dispatched: string[]; tableA: TableARow[]; tableB: TableBRow[]; day: number }) {
   const [formationKey, setFormationKey] = useState('AREA PATROL // AP-01')
   const [showDispatchReview, setShowDispatchReview] = useState(false)
   const [overrides, setOverrides] = useState<Record<number, string>>({})
@@ -296,7 +301,8 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
   const [customSlots, setCustomSlots] = useState<string[]>(['Rifleman', 'Rifleman', 'Rifleman', 'Rifleman'])
 
   const skeleton = missionSkeletons[formationKey] ?? missionSkeletons['AREA PATROL // AP-01']
-  const liveTableA = useMemo(() => tableA.map(row => ({ ...row, ors: getEffectiveOrs(row.ors, day) })), [tableA, day])
+  const liveTableA = tableA
+
 
   const handleFormationChange = (key: string) => {
     setFormationKey(key)
@@ -439,9 +445,10 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
                 {sortedTableA.map(s => {
                   const isCurrentlyInSquad = selectedIds.includes(s.id)
                   const hasMatchingBadge = swappingSlot ? s.badges.includes(swappingSlot.role) : false
-                  const isAvailable = s.status === 'Available'
+const isAvailable = s.status === 'Available'
+  const isOnDuty = tableB.some(record => record.soldierId === s.id && record.endHour === undefined)
 
-                  return (
+  return (
                     <tr
                       key={s.id}
                       className={`${isCurrentlyInSquad ? 'selected-row' : ''} ${hasMatchingBadge && swappingSlot ? 'matching-badge-row' : ''}`}
@@ -451,8 +458,8 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
                     >
                       <td><Person soldier={s} /></td>
                       <td>
-                        <StatusPill tone={s.status === 'Available' ? 'good' : 'danger'}>{s.status}</StatusPill>
-                        <small>{s.reason}</small>
+<StatusPill tone={isAvailable ? 'good' : isOnDuty ? 'warn' : 'danger'}>{isOnDuty ? 'On duty' : s.status}</StatusPill>
+                          <small>{isOnDuty ? 'Unavailable · active duty' : s.reason}</small>
                       </td>
                       <td><Readiness value={s.ors} /></td>
                       <td>
@@ -748,9 +755,8 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
   )
 }
 
-function LeaveView({ tableA, onDecision }: { tableA: TableARow[]; onDecision: (soldierId: string, decision: 'Approved' | 'Rejected') => void }) {
-  const [decisions, setDecisions] = useState<Record<string, string>>({})
-  const requests = tableA.slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: s.lpi, soldier: s }))
+function LeaveView({ tableA, decisions, setDecision, onDecision }: { tableA: TableARow[]; decisions: Record<string, string>; setDecision: (id: string, decision: 'Approved' | 'Rejected') => void; onDecision: (soldierId: string, decision: 'Approved' | 'Rejected') => void }) {
+  const requests = useMemo(() => tableA.filter(s => s.status === 'Available').sort((a, b) => b.lpi - a.lpi || a.id.localeCompare(b.id)).slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: s.lpi, soldier: s })), [tableA])
   const pendingCount = requests.filter(r => !decisions[r.id]).length
   const approvedCount = Object.values(decisions).filter(value => value === 'Approved').length
   const quotaTotal = 12
@@ -771,7 +777,7 @@ function LeaveView({ tableA, onDecision }: { tableA: TableARow[]; onDecision: (s
       <div className="kpi-grid">
         <Kpi label="Pending applications" value={String(pendingCount)} detail={`${pendingCount} awaiting decision`} tone="warn" icon={Users} />
         <Kpi label="Quota remaining" value={String(Math.max(0, quotaTotal - quotaUsed))} detail="September cycle" icon={ShieldCheck} />
-        <Kpi label="Approved this cycle" value={String(quotaUsed)} detail="Last approved 05 SEP" tone="good" icon={CheckCircle2} />
+        <Kpi label="Approved this cycle" value={String(quotaUsed)} detail="Last approved 15 JUL" tone="good" icon={CheckCircle2} />
         <Kpi label="Screen last opened" value="NOW" detail="Live review session" icon={Clock3} />
       </div>
       <Panel eyebrow="TABLE A / LEAVE FIELDS ONLY" title="Pending applications">
@@ -791,15 +797,15 @@ function LeaveView({ tableA, onDecision }: { tableA: TableARow[]; onDecision: (s
                 <tr key={r.id}>
                   <td><Person soldier={r.soldier} /><small>{r.id} · {r.dates}</small></td>
                   <td><div className="badge-list">{r.soldier.badges.map(b => <span key={b}>{b}</span>)}</div></td>
-                  <td><Readiness value={r.score} /></td>
+                  <td><LpiScore value={r.score} /></td>
                   <td>{r.soldier.status}</td>
                   <td>
                     {decisions[r.id] ? (
                       <StatusPill tone={decisions[r.id] === 'Approved' ? 'good' : 'danger'}>{decisions[r.id]}</StatusPill>
                     ) : (
                       <div className="decision-actions">
-                        <button className="button success small-button" onClick={() => { setDecisions({ ...decisions, [r.id]: 'Approved' }); onDecision(r.soldier.id, 'Approved') }}>Approve</button>
-                        <button className="button danger small-button" onClick={() => { setDecisions({ ...decisions, [r.id]: 'Rejected' }); onDecision(r.soldier.id, 'Rejected') }}>Reject</button>
+                        <button className="button success small-button" onClick={() => { setDecision(r.id, 'Approved'); onDecision(r.soldier.id, 'Approved') }}>Approve</button>
+                        <button className="button danger small-button" onClick={() => { setDecision(r.id, 'Rejected'); onDecision(r.soldier.id, 'Rejected') }}>Reject</button>
                       </div>
                     )}
                   </td>
@@ -871,8 +877,18 @@ export default function Page() {
   const [checkedIn, setCheckedIn] = useState<string[]>([])
   const [tableB, setTableB] = useState<TableBRow[]>([])
   const [tableARows, setTableARows] = useState<TableARow[]>(tableA)
+  const [leaveDecisions, setLeaveDecisions] = useState<Record<string, string>>({})
 
   const nowLabel = getClockStamp(day)
+  useEffect(() => {
+    setTableARows(rows => rows.map(row => {
+      const activeDuty = tableB.find(record => record.soldierId === row.id && record.endHour === undefined)
+      const elapsed = Math.max(0, day - row.orsUpdatedHour)
+      if (!elapsed) return row
+      const nextOrs = activeDuty ? getDecayOrs(row.ors, elapsed) : row.status === 'Available' ? getGrowthOrs(row.ors, elapsed) : row.ors
+      return { ...row, ors: nextOrs, readiness: nextOrs, orsUpdatedHour: day }
+    }))
+  }, [day, tableB])
   const handleLeaveDecision = (soldierId: string, decision: 'Approved' | 'Rejected') => {
     if (decision === 'Approved') {
       setDispatched(previous => previous.filter(id => id !== soldierId))
@@ -916,7 +932,7 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => { setDispatched(previous => Array.from(new Set([...previous, ...ids]))); setTableARows(rows => rows.map(row => ids.includes(row.id) ? { ...row, status: 'Unavailable', reason: 'Dispatched · awaiting NCO verification' } : row)) }, dispatched, tableA: tableARows, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
+        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => { setDispatched(previous => Array.from(new Set([...previous, ...ids]))); setTableARows(rows => rows.map(row => ids.includes(row.id) ? { ...row, status: 'Unavailable', reason: 'Dispatched · awaiting NCO verification' } : row)) }, dispatched, tableA: tableARows, tableB, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, decisions: leaveDecisions, setDecision: (id: string, decision: string) => setLeaveDecisions(previous => ({ ...previous, [id]: decision })), onDecision: handleLeaveDecision } : {}) as never} />
       </div>
       <div className="scanline" />
     </main>
