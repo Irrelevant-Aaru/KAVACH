@@ -874,8 +874,12 @@ export default function Page() {
 
   const nowLabel = getClockStamp(day)
   const handleLeaveDecision = (soldierId: string, decision: 'Approved' | 'Rejected') => {
+    if (decision === 'Approved') {
+      setDispatched(previous => previous.filter(id => id !== soldierId))
+      setCheckedIn(previous => previous.filter(id => id !== soldierId))
+    }
     setTableARows(rows => rows.map(row => row.id === soldierId
-      ? { ...row, status: decision === 'Approved' ? 'Unavailable' : row.status, reason: decision === 'Approved' ? 'Leave approved' : row.reason }
+      ? { ...row, status: decision === 'Approved' ? 'Unavailable' : row.status, reason: decision === 'Approved' ? 'Leave approved · unavailable' : row.reason }
       : row))
   }
   const checkIn = (id: string) => {
