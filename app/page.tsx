@@ -92,7 +92,8 @@ const tableA: TableARow[] = soldiers.map((soldier, index) => ({
   endTime: '—',
 }))
 
-const getEffectiveOrs = (initialOrs: number, hours: number) => Math.min(100, Math.round(100 - (100 - initialOrs) * Math.exp(-0.0123 * hours)))
+const getGrowthOrs = (initialOrs: number, hours: number) => Math.min(100, Math.round(100 - (100 - initialOrs) * Math.exp(-0.0123 * Math.max(0, hours))))
+const getDecayOrs = (initialOrs: number, hours: number) => Math.max(20, Math.round(initialOrs * Math.exp(-0.0123 * Math.max(0, hours))))
 
 const getClockStamp = (hour: number) => {
   const date = new Date(2026, 6, 27, 10, 30)
@@ -288,7 +289,7 @@ const missionSkeletons: Record<string, { label: string; code: string; roles: str
   },
 }
 
-function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: string[]) => void; dispatched: string[]; tableA: TableARow[]; day: number }) {
+function CommanderView({ dispatch, dispatched, tableA, tableB, day }: { dispatch: (ids: string[]) => void; dispatched: string[]; tableA: TableARow[]; tableB: TableBRow[]; day: number }) {
   const [formationKey, setFormationKey] = useState('AREA PATROL // AP-01')
   const [showDispatchReview, setShowDispatchReview] = useState(false)
   const [overrides, setOverrides] = useState<Record<number, string>>({})
@@ -296,7 +297,16 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
   const [customSlots, setCustomSlots] = useState<string[]>(['Rifleman', 'Rifleman', 'Rifleman', 'Rifleman'])
 
   const skeleton = missionSkeletons[formationKey] ?? missionSkeletons['AREA PATROL // AP-01']
-  const liveTableA = useMemo(() => tableA.map(row => ({ ...row, ors: getEffectiveOrs(row.ors, day) })), [tableA, day])
+  const liveTableA = useMemo(() => tableA.map(row => {
+    const activeDuty = tableB.find(record => record.soldierId === row.id && record.endHour === undefined)
+    if (activeDuty) {
+      return { ...row, ors: getDecayOrs(row.ors, day - activeDuty.startHour) }
+    }
+    if (row.status === 'Available') {
+      return { ...row, ors: getGrowthOrs(row.ors, day) }
+    }
+    return row
+  }), [tableA, tableB, day])
 
   const handleFormationChange = (key: string) => {
     setFormationKey(key)
@@ -439,9 +449,10 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
                 {sortedTableA.map(s => {
                   const isCurrentlyInSquad = selectedIds.includes(s.id)
                   const hasMatchingBadge = swappingSlot ? s.badges.includes(swappingSlot.role) : false
-                  const isAvailable = s.status === 'Available'
+const isAvailable = s.status === 'Available'
+  const isOnDuty = tableB.some(record => record.soldierId === s.id && record.endHour === undefined)
 
-                  return (
+  return (
                     <tr
                       key={s.id}
                       className={`${isCurrentlyInSquad ? 'selected-row' : ''} ${hasMatchingBadge && swappingSlot ? 'matching-badge-row' : ''}`}
@@ -451,8 +462,8 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
                     >
                       <td><Person soldier={s} /></td>
                       <td>
-                        <StatusPill tone={s.status === 'Available' ? 'good' : 'danger'}>{s.status}</StatusPill>
-                        <small>{s.reason}</small>
+<StatusPill tone={isAvailable ? 'good' : isOnDuty ? 'warn' : 'danger'}>{isOnDuty ? 'On duty' : s.status}</StatusPill>
+                          <small>{isOnDuty ? 'Unavailable · active duty' : s.reason}</small>
                       </td>
                       <td><Readiness value={s.ors} /></td>
                       <td>
@@ -916,7 +927,7 @@ export default function Page() {
             </button>
           ))}
         </div>
-        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => { setDispatched(previous => Array.from(new Set([...previous, ...ids]))); setTableARows(rows => rows.map(row => ids.includes(row.id) ? { ...row, status: 'Unavailable', reason: 'Dispatched · awaiting NCO verification' } : row)) }, dispatched, tableA: tableARows, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
+        <View {...(role === 'Commander' ? { dispatch: (ids: string[]) => { setDispatched(previous => Array.from(new Set([...previous, ...ids]))); setTableARows(rows => rows.map(row => ids.includes(row.id) ? { ...row, status: 'Unavailable', reason: 'Dispatched · awaiting NCO verification' } : row)) }, dispatched, tableA: tableARows, tableB, day } : role === 'NCO / Roster' ? { dispatched, checkedIn, checkIn, tableB, markReturn, day } : role === 'Soldier' ? { dispatched, checkedIn, tableB, day } : role === 'Leave Authority' ? { tableA: tableARows, onDecision: handleLeaveDecision } : {}) as never} />
       </div>
       <div className="scanline" />
     </main>
