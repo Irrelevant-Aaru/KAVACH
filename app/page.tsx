@@ -40,7 +40,7 @@ type Soldier = {
   reason: string
 }
 type TableARow = Soldier & { ors: number; lpi: number; startTime: string; endTime: string }
-type TableBRow = { soldierId: string; name: string; startTime: string; endTime: string }
+type TableBRow = { soldierId: string; name: string; startTime: string; endTime: string; startHour: number; endHour?: number }
 
 const soldierNames = [
   'Arjun Singh', 'Vikram Rao', 'Rohit Sharma', 'Amit Kumar', 'Suresh Yadav', 'Manoj Verma',
@@ -615,6 +615,10 @@ function CommanderView({ dispatch, dispatched, tableA, day }: { dispatch: (ids: 
 
 function NcoView({ dispatched, checkedIn, checkIn, tableB, markReturn, day }: { dispatched: string[]; checkedIn: string[]; checkIn: (id: string) => void; tableB: TableBRow[]; markReturn: (id: string) => void; day: number }) {
   const active = dispatched.map(id => soldiers.find(s => s.id === id)!).filter(Boolean)
+  const visibleRows = tableB.filter(row => row.endHour === undefined || day - row.endHour < 24)
+  const visibleActive = active.filter(s => !tableB.some(row => row.soldierId === s.id && row.endHour !== undefined && day - row.endHour >= 24))
+  const weeklyReturns = tableB.filter(row => row.endHour !== undefined && day - row.endHour >= 0 && day - row.endHour <= 168).length
+  const checkedInActive = checkedIn.filter(id => tableB.some(row => row.soldierId === id && row.endHour === undefined))
   return (
     <>
       <div className="page-title">
@@ -627,15 +631,15 @@ function NcoView({ dispatched, checkedIn, checkIn, tableB, markReturn, day }: { 
       </div>
       <div className="kpi-grid">
         <Kpi label="Dispatched squad" value={`${active.length}`} detail="Commander handoff" tone="warn" icon={Clock3} />
-        <Kpi label="Checked in" value={`${checkedIn.length}`} detail="Table B rows created" icon={Database} />
-        <Kpi label="Returns" value={`${tableB.filter(r => r.endTime !== '—').length}`} detail="End time uses clock" tone="good" icon={TimerReset} />
-        <Kpi label="Phone notices" value={`${checkedIn.length}`} detail="Soldier logs requested" icon={Zap} />
+        <Kpi label="Checked in" value={`${checkedInActive.length}`} detail="Active · awaiting return" icon={Database} />
+        <Kpi label="Returns" value={`${weeklyReturns}`} detail="This week · end time uses clock" tone="good" icon={TimerReset} />
+        <Kpi label="Phone notices" value={`${checkedInActive.length}`} detail="Soldier logs requested" icon={Zap} />
       </div>
       <Panel eyebrow="COMMANDER HANDOFF / DISPATCHED ONLY" title="Check-in zone" action={<StatusPill tone="warn">LEVEL 02 · STANDARD</StatusPill>}>
         <div className="check-list">
-          {active.length ? (
-            active.map(s => {
-              const row = tableB.find(r => r.soldierId === s.id)
+          {visibleActive.length ? (
+            visibleActive.map(s => {
+const row = visibleRows.find(r => r.soldierId === s.id)
               const isIn = checkedIn.includes(s.id)
               const isReturned = row?.endTime !== '—'
               return (
@@ -701,9 +705,15 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
       <div className="soldier-stack">
         {active.map(s => {
           const row = tableB.find(r => r.soldierId === s.id)
-          const isChecked = checkedIn.includes(s.id)
+          const isChecked = checkedIn.includes(s.id) && row?.endHour === undefined
           return (
             <Panel className="soldier-card" key={s.id} eyebrow={`PRIVATE INTERFACE / ${s.id}`} title={s.name} action={<StatusPill tone={isChecked ? 'good' : 'neutral'}>{isChecked ? 'On duty' : 'Pending check-in'}</StatusPill>}>
+              {!isChecked && (
+                <div className="soldier-locked" role="status">
+                  <LockKeyhole size={18} />
+                  <div><strong>INTERFACE LOCKED</strong><span>Complete check-in via NCO to unlock this private duty log.</span></div>
+                </div>
+              )}
               <div className="assignment-hero">
                 <div className="mission-icon"><Crosshair size={25} /></div>
                 <div>
@@ -858,7 +868,7 @@ export default function Page() {
   const [tableB, setTableB] = useState<TableBRow[]>([])
   const [tableARows, setTableARows] = useState<TableARow[]>(tableA)
 
-  const nowLabel = `07 SEP 2026 · 14:32 Z +${day}D`
+  const nowLabel = getClockStamp(day)
   const handleLeaveDecision = (soldierId: string, decision: 'Approved' | 'Rejected') => {
     setTableARows(rows => rows.map(row => row.id === soldierId
       ? { ...row, status: decision === 'Approved' ? 'Unavailable' : row.status, reason: decision === 'Approved' ? 'Leave approved' : row.reason }
@@ -868,9 +878,9 @@ export default function Page() {
     if (checkedIn.includes(id)) return
     const soldier = soldiers.find(s => s.id === id)!
     setCheckedIn(x => [...x, id])
-    setTableB(rows => [...rows, { soldierId: id, name: soldier.name, startTime: nowLabel, endTime: '—' }])
+    setTableB(rows => [...rows, { soldierId: id, name: soldier.name, startTime: nowLabel, endTime: '—', startHour: day }])
   }
-  const markReturn = (id: string) => setTableB(rows => rows.map(row => row.soldierId === id ? { ...row, endTime: nowLabel } : row))
+  const markReturn = (id: string) => setTableB(rows => rows.map(row => row.soldierId === id ? { ...row, endTime: nowLabel, endHour: day } : row))
 
   const View = role === 'Commander' ? CommanderView : role === 'NCO / Roster' ? NcoView : role === 'Soldier' ? SoldierView : role === 'Leave Authority' ? LeaveView : MedicalView
 
