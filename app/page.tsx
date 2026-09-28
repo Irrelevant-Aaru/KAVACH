@@ -670,11 +670,15 @@ const row = visibleRows.find(r => r.soldierId === s.id)
 
 function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: string[]; checkedIn: string[]; tableB: TableBRow[]; day: number }) {
   const active = dispatched.map(id => soldiers.find(s => s.id === id)).filter((s): s is Soldier => Boolean(s))
+  const visibleActive = active.filter(s => {
+    const row = tableB.find(record => record.soldierId === s.id)
+    return row?.endHour === undefined
+  })
   const [logs, setLogs] = useState<Record<string, boolean>>({})
   const [sleep, setSleep] = useState<Record<string, string>>({})
   const [meals, setMeals] = useState<Record<string, string>>({})
 
-  if (!active.length) {
+  if (!visibleActive.length) {
     return (
       <>
         <div className="page-title">
@@ -703,7 +707,7 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
         <StatusPill tone="good">Phone-linked</StatusPill>
       </div>
       <div className="soldier-stack">
-        {active.map(s => {
+        {visibleActive.map(s => {
           const row = tableB.find(r => r.soldierId === s.id)
           const isChecked = checkedIn.includes(s.id) && row?.endHour === undefined
           return (
@@ -725,14 +729,14 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
               <div className="field-grid">
                 <label>
                   Sleep hours
-                  <input type="number" min="0" max="24" value={sleep[s.id] ?? ''} onChange={e => setSleep({ ...sleep, [s.id]: e.target.value })} placeholder="0–24" />
+                  <input type="number" min="0" max="24" value={sleep[s.id] ?? ''} onChange={e => setSleep({ ...sleep, [s.id]: e.target.value })} placeholder="0–24" disabled={!isChecked} />
                 </label>
                 <label>
                   Meals while on duty
-                  <input type="number" min="0" max="10" value={meals[s.id] ?? ''} onChange={e => setMeals({ ...meals, [s.id]: e.target.value })} placeholder="0–10" />
+                  <input type="number" min="0" max="10" value={meals[s.id] ?? ''} onChange={e => setMeals({ ...meals, [s.id]: e.target.value })} placeholder="0–10" disabled={!isChecked} />
                 </label>
               </div>
-              <button className={`button full ${logs[s.id] ? 'success' : 'primary'}`} onClick={() => setLogs({ ...logs, [s.id]: true })}>
+              <button className={`button full ${logs[s.id] ? 'success' : 'primary'}`} onClick={() => setLogs({ ...logs, [s.id]: true })} disabled={!isChecked}>
                 {logs[s.id] ? <><Check size={15} /> Daily log saved to Table B</> : <>Submit daily log</>}
               </button>
             </Panel>
@@ -880,7 +884,18 @@ export default function Page() {
     setCheckedIn(x => [...x, id])
     setTableB(rows => [...rows, { soldierId: id, name: soldier.name, startTime: nowLabel, endTime: '—', startHour: day }])
   }
-  const markReturn = (id: string) => setTableB(rows => rows.map(row => row.soldierId === id ? { ...row, endTime: nowLabel, endHour: day } : row))
+  const markReturn = (id: string) => {
+    setTableB(rows => rows.map(row => row.soldierId === id ? { ...row, endTime: nowLabel, endHour: day } : row))
+    setDispatched(previous => previous.filter(dispatchedId => dispatchedId !== id))
+    setCheckedIn(previous => previous.filter(checkedId => checkedId !== id))
+    setTableARows(rows => rows.map(row => {
+      if (row.id !== id) return row
+      const checkInRecord = tableB.find(record => record.soldierId === id && record.endHour === undefined)
+      const duration = Math.max(0, day - (checkInRecord?.startHour ?? day))
+      const returnedOrs = Math.max(20, Math.round(row.ors * Math.exp(-0.0123 * duration)))
+      return { ...row, ors: returnedOrs, readiness: returnedOrs, status: 'Available', reason: `Available after ${duration}h duty recovery` }
+    }))
+  }
 
   const View = role === 'Commander' ? CommanderView : role === 'NCO / Roster' ? NcoView : role === 'Soldier' ? SoldierView : role === 'Leave Authority' ? LeaveView : MedicalView
 
