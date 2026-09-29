@@ -756,7 +756,7 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
 }
 
 function LeaveView({ tableA, decisions, setDecision, onDecision }: { tableA: TableARow[]; decisions: Record<string, string>; setDecision: (id: string, decision: 'Approved' | 'Rejected') => void; onDecision: (soldierId: string, decision: 'Approved' | 'Rejected') => void }) {
-  const requests = useMemo(() => tableA.filter(s => s.status === 'Available').sort((a, b) => b.lpi - a.lpi || a.id.localeCompare(b.id)).slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: s.lpi, soldier: s })), [tableA])
+  const requests = useMemo(() => tableA.filter(s => s.status === 'Available').sort((a, b) => a.id.localeCompare(b.id)).slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: [84, 63, 51][i], soldier: s })), [tableA])
   const pendingCount = requests.filter(r => !decisions[r.id]).length
   const approvedCount = Object.values(decisions).filter(value => value === 'Approved').length
   const quotaTotal = 12
