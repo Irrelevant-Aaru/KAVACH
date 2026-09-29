@@ -2,9 +2,7 @@
 
 > **AI-driven personnel stress prediction, force welfare optimization, and tactical squad readiness platform for uniformed services.**
 
-[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+
 [![Live Prototype](https://img.shields.io/badge/Live_Demo-v0.app-green)](https://v0--kavach.vercel.app)
 
 ---
