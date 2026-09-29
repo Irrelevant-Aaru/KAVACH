@@ -88,7 +88,7 @@ const tableA: TableARow[] = soldiers.map((soldier, index) => ({
   ...soldier,
   ors: soldier.readiness,
   orsUpdatedHour: 0,
-  lpi: [83, 55, 23][index % 3],
+  lpi: [84, 77, 41][index % 3],
   startTime: '—',
   endTime: '—',
 }))
@@ -155,7 +155,7 @@ function Readiness({ value }: { value: number }) {
   }
 
 function LpiScore({ value }: { value: number }) {
-  const tone = value <= 30 ? 'good' : value <= 60 ? 'warn' : 'danger'
+  const tone = value <= 50 ? 'good' : value <= 75 ? 'warn' : 'danger'
   return <div className="readiness"><div className="readiness-bar"><span className={tone} style={{ width: `${value}%` }} /></div><strong className={tone}>{value}</strong></div>
 }
 
@@ -756,7 +756,7 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
 }
 
 function LeaveView({ tableA, decisions, setDecision, onDecision }: { tableA: TableARow[]; decisions: Record<string, string>; setDecision: (id: string, decision: 'Approved' | 'Rejected') => void; onDecision: (soldierId: string, decision: 'Approved' | 'Rejected') => void }) {
-  const requests = useMemo(() => tableA.filter(s => s.status === 'Available').sort((a, b) => b.lpi - a.lpi || a.id.localeCompare(b.id)).slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: s.lpi, soldier: s })), [tableA])
+  const requests = useMemo(() => tableA.filter(s => s.status === 'Available').sort((a, b) => a.id.localeCompare(b.id)).slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: [84, 63, 51][i], soldier: s })), [tableA])
   const pendingCount = requests.filter(r => !decisions[r.id]).length
   const approvedCount = Object.values(decisions).filter(value => value === 'Approved').length
   const quotaTotal = 12
