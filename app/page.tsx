@@ -88,7 +88,7 @@ const tableA: TableARow[] = soldiers.map((soldier, index) => ({
   ...soldier,
   ors: soldier.readiness,
   orsUpdatedHour: 0,
-  lpi: [83, 55, 23][index % 3],
+  lpi: [84, 77, 41][index % 3],
   startTime: '—',
   endTime: '—',
 }))
@@ -155,7 +155,7 @@ function Readiness({ value }: { value: number }) {
   }
 
 function LpiScore({ value }: { value: number }) {
-  const tone = value <= 30 ? 'good' : value <= 60 ? 'warn' : 'danger'
+  const tone = value <= 50 ? 'good' : value <= 75 ? 'warn' : 'danger'
   return <div className="readiness"><div className="readiness-bar"><span className={tone} style={{ width: `${value}%` }} /></div><strong className={tone}>{value}</strong></div>
 }
 
