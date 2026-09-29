@@ -1,33 +1,25 @@
-# KAVACH
+# KAVACH — Tactical Decision Support Platform for Force Readiness
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+> **AI-driven personnel stress prediction, force welfare optimization, and tactical squad readiness platform for uniformed services.**
 
-## Built with v0
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+[![Live Prototype](https://img.shields.io/badge/Live_Demo-v0.app-green)](https://v0--kavach.vercel.app)
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+---
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_5I8MGneJAu5owaZM45tga2Xkdfiq)
+## 🛡️ Core Vision & Problem Statement
 
-## Getting Started
+Military and paramilitary organizations face ongoing challenges regarding force preservation: chronic deployment fatigue, subjective leave distribution, unaddressed traumatic stress, and mental health stigma that prevents self-reporting. 
 
-First, run the development server:
+**KAVACH** transforms unstructured administrative, biometric, and operational data into objective, actionable intelligence. The platform revolves around two core metrics:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+1. **Operational Readiness Score (ORS) [0–100]:** A live metric quantifying cognitive and physical combat readiness based on duty exposure, climate friction, and rest recovery.
+2. **Leave Priority Index (LPI):** An algorithmic score prioritizing leave based on cumulative deployment hardship, time away from family, financial stress, and rejected leave history.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🎮 Interactive Prototype & Simulation Guide
 
-## Learn More
-
-To learn more, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+The current prototype demonstrates the **end-to-end multi-role operational loop** across 5 switchable interfaces, using a built-in **Simulated Time Scroller** to model real-time ORS depletion and dynamic rest recovery.
