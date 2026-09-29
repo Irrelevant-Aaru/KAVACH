@@ -2,7 +2,7 @@
 
 > **AI-driven personnel stress prediction, force welfare optimization, and tactical squad readiness platform for uniformed services.**
 
-[![Live Prototype](https://img.shields.io/badge/Live_Demo-v0.app-green)](https://v0--kavach.vercel.app)
+[![Live Prototype](https://img.shields.io/badge/Live_Demo_of_KAVACH-v0.app-green)](https://v0--kavach.vercel.app)
 
 ---
 
