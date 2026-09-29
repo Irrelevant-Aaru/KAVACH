@@ -7,7 +7,7 @@
 
 ---
 
-## 🛡️ Core Vision & Problem Statement
+## Core Vision & Problem Statement
 
 Military and paramilitary organizations face ongoing challenges regarding force preservation: chronic deployment fatigue, subjective leave distribution, unaddressed traumatic stress, and mental health stigma that prevents self-reporting. 
 
@@ -18,6 +18,6 @@ Military and paramilitary organizations face ongoing challenges regarding force 
 
 ---
 
-## 🎮 Interactive Prototype & Simulation Guide
+## Interactive Prototype & Simulation Guide
 
 The current prototype demonstrates the **end-to-end multi-role operational loop** across 5 switchable interfaces, using a built-in **Simulated Time Scroller** to model real-time ORS depletion and dynamic rest recovery.
