@@ -168,6 +168,28 @@ button { cursor: pointer; }
 @media (max-width: 1100px) { .stage-grid { grid-template-columns: repeat(3, 1fr); }.flow-stage:nth-child(3)::after, .flow-stage:nth-child(3) .stage-arrow { display: none; }.role-map-grid { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 760px) { .architecture-v2 { padding: 18px; }.stage-grid, .store-grid, .role-map-grid { grid-template-columns: 1fr; }.flow-stage:not(:last-child)::after, .stage-arrow { display: none; }.map-section-heading { align-items: flex-start; flex-direction: column; }.security-strip, .nightly-row { align-items: flex-start; flex-wrap: wrap; }.security-tags, .nightly-row code { margin-left: 0; }.map-legend { gap: 10px; } }
 
+/* Command Deck uses independent scroll regions so the full workspace remains reachable. */
+@media (min-width: 1051px) {
+  html, body, .app-shell { height: 100%; min-height: 0; }
+  body { overflow: hidden; }
+  .main.commander-main { height: calc(100vh - 106px); min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+  .commander-main .role-switcher,
+  .commander-main .page-title,
+  .commander-main > .kpi-grid { flex: 0 0 auto; }
+  .commander-main .content-grid.commander-grid { flex: 1 1 auto; min-height: 0; height: auto; overflow: hidden; align-items: stretch; }
+  .commander-grid > .panel { min-height: 0; height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+  .commander-grid > .roster-panel .table-wrap { flex: 1 1 auto; min-height: 0; max-height: none; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable both-edges; }
+  .commander-grid > .roster-panel .table-wrap table { min-width: 620px; }
+  .commander-grid > .formation-panel { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-gutter: stable; }
+}
+
+@media (max-width: 1050px) {
+  .commander-main { overflow: visible; }
+  .commander-grid > .panel { min-height: 0; }
+  .commander-grid > .roster-panel .table-wrap,
+  .commander-grid > .formation-panel { max-height: 70vh; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+}
+
 .timebar { min-height: 42px; margin-left: 224px; padding: 6px 34px; border-bottom: 1px solid var(--border); background: #111614; display: flex; align-items: center; gap: 9px; color: var(--muted-foreground); font: 10px var(--font-mono); }
 .timebar > div { display: flex; align-items: center; gap: 8px; margin-right: auto; }.timebar > div svg { color: var(--primary); }.timebar strong { color: var(--primary); letter-spacing: .08em; font-size: 9px; }.timebar input { accent-color: var(--primary); width: clamp(220px, 32vw, 420px); height: 6px; cursor: ew-resize; }.timebar button { border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); padding: 5px 8px; font: 9px var(--font-mono); }.timebar button:hover, .timebar button.active { color: var(--primary); border-color: #68754a; background: #202920; }.time-limit { color: var(--accent); border-left: 1px solid var(--border); padding-left: 10px; }.skeleton-picker { display: flex; flex-direction: column; gap: 6px; padding-bottom: 14px; }.skeleton-picker label { color: var(--muted-foreground); font: 9px var(--font-mono); letter-spacing: .1em; }.skeleton-picker select, .inline-select { border: 1px solid var(--border); background: #171d1a; color: var(--foreground); padding: 8px; }.skeleton-picker span, .phone-notice { color: var(--muted-foreground); font-size: 10px; }.dispatch-confirm { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 9px; color: var(--good); border: 1px solid #405238; background: #172116; font: 10px var(--font-mono); }.phone-notice { display: flex; align-items: center; gap: 4px; color: var(--good); margin-top: 4px; }.soldier-switcher { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin-bottom: 18px; }.soldier-switcher button { display: flex; align-items: center; gap: 8px; text-align: left; border: 1px solid var(--border); background: #111614; color: var(--muted-foreground); padding: 8px; }.soldier-switcher button.active, .soldier-switcher button:hover { color: var(--foreground); border-color: #68754a; background: #202920; }.soldier-switcher small { display: block; color: inherit; font-size: 9px; margin-top: 2px; }.skeleton-picker + .mission-band { margin-top: 0; }
 .formation-review-button { min-height: 42px; padding: 0 18px; font-size: 11px; letter-spacing: .06em; }
