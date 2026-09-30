@@ -756,7 +756,13 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
 }
 
 function LeaveView({ tableA, decisions, setDecision, onDecision }: { tableA: TableARow[]; decisions: Record<string, string>; setDecision: (id: string, decision: 'Approved' | 'Rejected') => void; onDecision: (soldierId: string, decision: 'Approved' | 'Rejected') => void }) {
-  const requests = useMemo(() => tableA.filter(s => s.status === 'Available').sort((a, b) => a.id.localeCompare(b.id)).slice(0, 3).map((s, i) => ({ id: `LV-${104 + i * 3}`, name: s.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: [84, 63, 51][i], soldier: s })), [tableA])
+  const requests = useMemo(() => {
+    const applicantIds = ['A-001', 'A-002', 'A-003']
+    return applicantIds.map((soldierId, i) => {
+      const soldier = tableA.find(candidate => candidate.id === soldierId) ?? soldiers.find(candidate => candidate.id === soldierId)!
+      return { id: `LV-${104 + i * 3}`, name: soldier.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: [84, 63, 51][i], soldier }
+    })
+  }, [tableA])
   const pendingCount = requests.filter(r => !decisions[r.id]).length
   const approvedCount = Object.values(decisions).filter(value => value === 'Approved').length
   const quotaTotal = 12
@@ -798,7 +804,7 @@ function LeaveView({ tableA, decisions, setDecision, onDecision }: { tableA: Tab
                   <td><Person soldier={r.soldier} /><small>{r.id} · {r.dates}</small></td>
                   <td><div className="badge-list">{r.soldier.badges.map(b => <span key={b}>{b}</span>)}</div></td>
                   <td><LpiScore value={r.score} /></td>
-                  <td>{r.soldier.status}</td>
+                  <td>{decisions[r.id] === 'Approved' ? 'Unavailable' : 'Available'}</td>
                   <td>
                     {decisions[r.id] ? (
                       <StatusPill tone={decisions[r.id] === 'Approved' ? 'good' : 'danger'}>{decisions[r.id]}</StatusPill>
