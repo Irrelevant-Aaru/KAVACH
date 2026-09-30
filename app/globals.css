@@ -21,7 +21,10 @@ button { cursor: pointer; }
   display: flex;
   flex-direction: column;
   min-height: 620px;
+  min-width: 0;
   }
+
+  .formation-panel > * { min-width: 0; }
 
   .formation-panel .formation-preview {
   min-height: 340px;
@@ -193,15 +196,17 @@ button { cursor: pointer; }
 
 /* Keep the command deck anchored while its personnel table carries the scroll. */
 @media (min-width: 1051px) {
-  .commander-main { height: calc(100vh - 106px); overflow: hidden; padding-bottom: 18px; }
-  .commander-main .role-switcher { flex: 0 0 auto; margin-bottom: 16px; }
-  .commander-main .page-title { margin-bottom: 14px; }
-  .commander-main .kpi-grid { gap: 10px; margin-bottom: 14px; }
-  .commander-main .kpi { min-height: 72px; padding: 12px 14px; }
-  .commander-main .content-grid { min-height: 0; }
-  .commander-main .roster-panel { min-height: 0; }
-  .commander-main .roster-panel .table-wrap { max-height: calc(100vh - 360px); overflow-y: auto; overscroll-behavior: contain; scrollbar-color: #68754a #111614; }
-  .commander-main .formation-panel { margin-top: 0; max-height: calc(100vh - 360px); overflow-y: auto; }
+  .commander-main { height: calc(100vh - 106px); min-height: 0; overflow: hidden; padding-bottom: 12px; display: flex; flex-direction: column; }
+  .commander-main .role-switcher, .commander-main .page-title, .commander-main > .kpi-grid { flex: 0 0 auto; }
+  .commander-main .role-switcher { margin-bottom: 12px; }
+  .commander-main .page-title { margin-bottom: 10px; }
+  .commander-main .kpi-grid { gap: 10px; margin-bottom: 10px; }
+  .commander-main .kpi { min-height: 66px; padding: 10px 14px; }
+  .commander-main .content-grid { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .commander-main .commander-grid { height: 100%; min-height: 0; }
+  .commander-main .roster-panel, .commander-main .formation-panel { min-height: 0; height: 100%; overflow: hidden; }
+  .commander-main .roster-panel .table-wrap, .commander-main .formation-panel .formation-preview { min-height: 0; flex: 1 1 auto; overflow-y: auto; overflow-x: auto; overscroll-behavior: contain; scrollbar-gutter: stable; scrollbar-color: #68754a #111614; }
+  .commander-main .formation-panel { overflow-y: auto; }
 }
 @media (min-width: 1051px) {
   /* Keep metrics over Table A while the formation block rises into the freed column space. */
