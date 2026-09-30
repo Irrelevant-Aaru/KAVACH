@@ -205,15 +205,18 @@ button { cursor: pointer; }
   .commander-main .content-grid { flex: 1 1 auto; min-height: 0; overflow: hidden; }
   .commander-main .commander-grid { height: 100%; min-height: 0; }
   .commander-main .roster-panel, .commander-main .formation-panel { min-height: 0; height: 100%; overflow: hidden; }
-  .commander-main .roster-panel .table-wrap, .commander-main .formation-panel .formation-preview { min-height: 0; flex: 1 1 auto; overflow-y: auto; overflow-x: auto; overscroll-behavior: contain; scrollbar-gutter: stable; scrollbar-color: #68754a #111614; }
-  .commander-main .formation-panel { overflow-y: auto; }
+  .commander-main .roster-panel .table-wrap { min-height: 0; flex: 1 1 auto; overflow-y: auto; overflow-x: auto; overscroll-behavior: contain; scrollbar-gutter: stable; scrollbar-color: #68754a #111614; }
+  .commander-main .formation-panel .formation-select-container { flex: 0 0 auto; }
+  .commander-main .formation-panel .formation-preview { min-height: 0; flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-gutter: stable; scrollbar-color: #68754a #111614; }
+  .commander-main .formation-panel .formation-action-footer { flex: 0 0 auto; }
+  .commander-main .formation-panel { overflow: hidden; }
 }
 @media (min-width: 1051px) {
   /* Keep metrics over Table A while the formation block rises into the freed column space. */
 .commander-main > .kpi-grid { width: calc((100% - 18px) * 1.35 / 2.35); grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
   .commander-grid { align-items: start; }
   .commander-main > .kpi-grid .kpi { min-width: 0; }
-  .commander-grid .formation-panel { margin-top: -94px; }
+  .commander-grid .formation-panel { margin-top: 0; }
   .commander-grid .roster-panel { min-width: 0; }
   .commander-grid .roster-panel .table-wrap { max-height: calc(100vh - 302px); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
   .commander-grid .roster-panel .table-wrap table { min-width: 620px; }
