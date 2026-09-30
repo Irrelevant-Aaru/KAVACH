@@ -757,7 +757,7 @@ function SoldierView({ dispatched, checkedIn, tableB, day }: { dispatched: strin
 
 function LeaveView({ tableA, decisions, setDecision, onDecision }: { tableA: TableARow[]; decisions: Record<string, string>; setDecision: (id: string, decision: 'Approved' | 'Rejected') => void; onDecision: (soldierId: string, decision: 'Approved' | 'Rejected') => void }) {
   const requests = useMemo(() => {
-    const applicantIds = ['A-001', 'A-002', 'A-003']
+    const applicantIds = ['A-012', 'A-002', 'A-003']
     return applicantIds.map((soldierId, i) => {
       const soldier = tableA.find(candidate => candidate.id === soldierId) ?? soldiers.find(candidate => candidate.id === soldierId)!
       return { id: `LV-${104 + i * 3}`, name: soldier.name, dates: ['12—16 SEP', '19—24 SEP', '22—25 SEP'][i], score: [84, 63, 51][i], soldier }
